@@ -4,7 +4,7 @@
  * Owns: editor source, recorder (worker) lifecycle, playback state machine and
  * the responsive layout (panels on desktop, tabs on small screens).
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 // Deep imports keep the Babel pipeline out of the main chunk (worker-only).
 import {
   DEFAULT_EXAMPLE_ID,
@@ -46,6 +46,23 @@ function loadInitialSource(): string {
     // Private mode or disabled storage — fall through to the default example.
   }
   return getExample(DEFAULT_EXAMPLE_ID).code;
+}
+
+const DESKTOP_QUERY = '(min-width: 1024px)';
+
+function subscribeDesktop(callback: () => void) {
+  const mql = window.matchMedia(DESKTOP_QUERY);
+  mql.addEventListener('change', callback);
+  return () => mql.removeEventListener('change', callback);
+}
+
+/** true when the viewport uses the desktop workbench layout. */
+function useIsDesktop(): boolean {
+  return useSyncExternalStore(
+    subscribeDesktop,
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => false,
+  );
 }
 
 export function VisualizerApp() {
@@ -139,6 +156,7 @@ export function VisualizerApp() {
 
   const { current, compileError, status: pbStatus, trace } = playback;
   const [mobileTab, setMobileTab] = useState<MobileTab>('editor');
+  const isDesktop = useIsDesktop();
 
   const timelineSeek = useCallback(
     (entryIndex: number) => {
@@ -220,8 +238,11 @@ export function VisualizerApp() {
         </div>
       )}
 
-      {/* Small screens: tabs instead of shrinking every panel at once. */}
-      <div className="lg:hidden">
+      {/* Small screens: tabs instead of shrinking every panel at once.
+          Rendered only when not desktop so the CodeMirror instance is
+          mounted exactly once (either here or in the workbench). */}
+      {!isDesktop && (
+      <div>
         <div className="flex flex-wrap gap-1.5 pb-1" role="tablist" aria-label="Visualizer sections">
           {MOBILE_TABS.map((tab) => (
             <button
@@ -283,9 +304,11 @@ export function VisualizerApp() {
           </div>
         )}
       </div>
+      )}
 
       {/* Desktop: panels workbench. */}
-      <div className="as-workbench hidden min-h-[560px] gap-2 lg:grid">
+      {isDesktop && (
+      <div className="as-workbench min-h-[560px] gap-2 grid">
         <div className="as-cell-editor as-editor-frame min-h-0">{editor}</div>
         <div className="as-cell-side flex min-h-0 flex-col gap-2">
           <EventLoopBadge loop={current.loop} stackEmpty={current.stack.length === 0} />
@@ -313,6 +336,7 @@ export function VisualizerApp() {
           <ConsolePanel lines={current.console} />
         </div>
       </div>
+      )}
     </div>
   );
 }
