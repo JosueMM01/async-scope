@@ -1,0 +1,43 @@
+---
+/** Static theme toggle — no hydration needed. */
+---
+
+<button
+  id="theme-toggle"
+  type="button"
+  class="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-[12px] font-semibold"
+  style="background: var(--as-elevated); border-color: var(--as-border-strong); color: var(--as-fg);"
+  aria-label="Toggle light and dark theme"
+  title="Toggle light and dark theme"
+>
+  <span aria-hidden="true" data-theme-icon>☾</span>
+  <span data-theme-label>Light</span>
+</button>
+
+<script>
+  const button = document.getElementById('theme-toggle');
+  const icon = button?.querySelector('[data-theme-icon]');
+  const label = button?.querySelector('[data-theme-label]');
+
+  function apply(theme: 'light' | 'dark') {
+    document.documentElement.setAttribute('data-theme', theme);
+    if (icon) icon.textContent = theme === 'dark' ? '☾' : '☀';
+    if (label) label.textContent = theme === 'dark' ? 'Light' : 'Dark';
+  }
+
+  apply(
+    (document.documentElement.getAttribute('data-theme') as 'light' | 'dark' | null) ?? 'dark',
+  );
+
+  button?.addEventListener('click', () => {
+    const current =
+      (document.documentElement.getAttribute('data-theme') as 'light' | 'dark' | null) ?? 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    apply(next);
+    try {
+      localStorage.setItem('asyncscope:theme', next);
+    } catch {
+      // Best-effort persistence only.
+    }
+  });
+</script>

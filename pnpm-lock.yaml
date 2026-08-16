@@ -38,6 +38,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.36.0
         version: 6.43.8
+      '@lezer/highlight':
+        specifier: ^1.2.3
+        version: 1.2.3
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.2.1(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))

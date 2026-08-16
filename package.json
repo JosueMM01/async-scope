@@ -33,6 +33,7 @@
     "@codemirror/language": "^6.11.0",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.0",
+    "@lezer/highlight": "^1.2.3",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.2.2",
     "react": "^19.2.8",
