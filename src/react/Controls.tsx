@@ -27,7 +27,9 @@ function StatusIcon({ status }: { status: PlaybackStatus }) {
     error: '✖',
   };
   return (
-    <span className={`as-status as-status-${status} inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold`}>
+    <span
+      className={`as-status as-status-${status} inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold`}
+    >
       <span aria-hidden="true">{icon[status]}</span>
       {STATUS_LABEL[status]}
     </span>
@@ -135,7 +137,11 @@ export function Controls({ playback, onRun, onStop }: ControlsProps) {
           disabled={!canStep}
           className="as-range w-full"
           aria-valuetext={`step ${cursor} of ${lastStep}`}
-          style={{ '--as-range-progress': `${(cursor / Math.max(1, lastStep)) * 100}%` } as React.CSSProperties}
+          style={
+            {
+              '--as-range-progress': `${(cursor / Math.max(1, lastStep)) * 100}%`,
+            } as React.CSSProperties
+          }
         />
         <span className="shrink-0 font-mono text-[11px] tabular-nums opacity-80" aria-hidden="true">
           {cursor}/{lastStep}

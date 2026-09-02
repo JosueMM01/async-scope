@@ -38,7 +38,9 @@ describe('synchronous execution', () => {
   });
 
   it('handles recursion', () => {
-    const events = run(`function fact(n) {\n  if (n <= 1) return 1;\n  return n * fact(n - 1);\n}\nconsole.log(fact(4));`);
+    const events = run(
+      `function fact(n) {\n  if (n <= 1) return 1;\n  return n * fact(n - 1);\n}\nconsole.log(fact(4));`,
+    );
     expect(consoleText(events)).toEqual(['24']);
     const pushes = allOf(events, 'stack:push').filter((e) => e.name === 'fact');
     expect(pushes.length).toBe(4);
@@ -69,22 +71,30 @@ console.log(\`\${p.sum()} \${total}\`);
 
 describe('timers and the task queue', () => {
   it('defers setTimeout callbacks until the stack is empty', () => {
-    const events = run(`console.log("A");\nsetTimeout(() => {\n  console.log("B");\n}, 0);\nconsole.log("C");`);
+    const events = run(
+      `console.log("A");\nsetTimeout(() => {\n  console.log("B");\n}, 0);\nconsole.log("C");`,
+    );
     expect(consoleText(events)).toEqual(['A', 'C', 'B']);
   });
 
   it('fires timers in delay order, not registration order', () => {
-    const events = run(`setTimeout(() => console.log("100"), 100);\nsetTimeout(() => console.log("0"), 0);\nsetTimeout(() => console.log("50"), 50);`);
+    const events = run(
+      `setTimeout(() => console.log("100"), 100);\nsetTimeout(() => console.log("0"), 0);\nsetTimeout(() => console.log("50"), 50);`,
+    );
     expect(consoleText(events)).toEqual(['0', '50', '100']);
   });
 
   it('breaks delay ties in registration order', () => {
-    const events = run(`setTimeout(() => console.log("first"), 10);\nsetTimeout(() => console.log("second"), 10);`);
+    const events = run(
+      `setTimeout(() => console.log("first"), 10);\nsetTimeout(() => console.log("second"), 10);`,
+    );
     expect(consoleText(events)).toEqual(['first', 'second']);
   });
 
   it('clearTimeout removes the timer', () => {
-    const events = run(`const id = setTimeout(() => console.log("nope"), 10);\nclearTimeout(id);\nsetTimeout(() => console.log("yes"), 20);`);
+    const events = run(
+      `const id = setTimeout(() => console.log("nope"), 10);\nclearTimeout(id);\nsetTimeout(() => console.log("yes"), 20);`,
+    );
     expect(consoleText(events)).toEqual(['yes']);
     expect(allOf(events, 'api:clear').length).toBe(1);
     // Timer #1 was cleared and must never complete or enqueue a task.
@@ -110,7 +120,9 @@ describe('timers and the task queue', () => {
   });
 
   it('runs setInterval repeatedly and honors clearInterval', () => {
-    const events = run(`let n = 0;\nconst id = setInterval(() => {\n  n++;\n  console.log("tick", n);\n  if (n >= 3) clearInterval(id);\n}, 10);`);
+    const events = run(
+      `let n = 0;\nconst id = setInterval(() => {\n  n++;\n  console.log("tick", n);\n  if (n >= 3) clearInterval(id);\n}, 10);`,
+    );
     expect(consoleText(events)).toEqual(['tick 1', 'tick 2', 'tick 3']);
   });
 
@@ -121,7 +133,9 @@ describe('timers and the task queue', () => {
   });
 
   it('drains microtasks between tasks', () => {
-    const events = run(`setTimeout(() => {\n  Promise.resolve().then(() => console.log("micro"));\n  console.log("task1");\n}, 0);\nsetTimeout(() => console.log("task2"), 0);`);
+    const events = run(
+      `setTimeout(() => {\n  Promise.resolve().then(() => console.log("micro"));\n  console.log("task1");\n}, 0);\nsetTimeout(() => console.log("task2"), 0);`,
+    );
     expect(consoleText(events)).toEqual(['task1', 'micro', 'task2']);
   });
 
@@ -185,7 +199,9 @@ describe('visualization states', () => {
   });
 
   it('computes remaining time on the clock advance', () => {
-    const states = statesFor(`setTimeout(() => console.log("x"), 40);\nsetTimeout(() => console.log("y"), 90);`);
+    const states = statesFor(
+      `setTimeout(() => console.log("x"), 40);\nsetTimeout(() => console.log("y"), 90);`,
+    );
     const atForty = states.find((s) => s.virtualTime === 40);
     const second = atForty?.apis.find((t) => t.timerId === 2);
     expect(second?.remaining).toBe(50);

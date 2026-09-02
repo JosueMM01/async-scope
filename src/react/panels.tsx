@@ -91,7 +91,12 @@ export function CallStackPanel({ frames }: { frames: Frame[] }) {
 
 export function WebApisPanel({ timers }: { timers: ApiTimer[] }) {
   return (
-    <PanelShell title="Browser APIs" accent="green" count={timers.length} ariaLabel="Browser and Async APIs">
+    <PanelShell
+      title="Browser APIs"
+      accent="green"
+      count={timers.length}
+      ariaLabel="Browser and Async APIs"
+    >
       {timers.length === 0 ? (
         <EmptyHint>No pending timers</EmptyHint>
       ) : (
@@ -109,9 +114,7 @@ export function WebApisPanel({ timers }: { timers: ApiTimer[] }) {
                 {timer.kind === 'timeout' ? 'setTimeout' : 'setInterval'}
               </span>
               <span className="as-timer-label opacity-80"> {timer.label}</span>
-              <span className="as-timer-remaining ml-auto tabular-nums">
-                {timer.remaining}ms
-              </span>
+              <span className="as-timer-remaining ml-auto tabular-nums">{timer.remaining}ms</span>
             </li>
           ))}
         </ul>
@@ -197,13 +200,7 @@ const LOOP_ICON: Record<LoopAction, string> = {
   'advance-time': '⏳',
 };
 
-export function EventLoopBadge({
-  loop,
-  stackEmpty,
-}: {
-  loop: LoopAction;
-  stackEmpty: boolean;
-}) {
+export function EventLoopBadge({ loop, stackEmpty }: { loop: LoopAction; stackEmpty: boolean }) {
   const active = loop !== 'idle';
   return (
     <div
@@ -332,9 +329,7 @@ export function TimelinePanel({
                   onClick={() => onSeekToEntry(index)}
                   aria-current={isActive ? 'step' : undefined}
                 >
-                  <span className="as-tl-index shrink-0 tabular-nums opacity-60">
-                    {index + 1}
-                  </span>
+                  <span className="as-tl-index shrink-0 tabular-nums opacity-60">{index + 1}</span>
                   <span className="as-tl-text min-w-0 flex-1">{entry.text}</span>
                   {entry.line !== null && (
                     <span className="as-tl-line shrink-0 font-mono text-[10px] opacity-60">
@@ -353,8 +348,6 @@ export function TimelinePanel({
 
 function EmptyHint({ children }: { children: React.ReactNode }) {
   return (
-    <p className="as-empty-hint px-2 py-6 text-center text-[12px] italic opacity-70">
-      {children}
-    </p>
+    <p className="as-empty-hint px-2 py-6 text-center text-[12px] italic opacity-70">{children}</p>
   );
 }

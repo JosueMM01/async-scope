@@ -8,9 +8,7 @@ import { VisualizerApp } from '../react/VisualizerApp';
   title="AsyncScope — Watch modern JavaScript execute"
   description="Write modern JavaScript and watch, step by step, how the call stack, Web APIs, microtask queue, task queue and the event loop run it."
 >
-  <header
-    class="mx-auto flex w-full max-w-[1500px] flex-wrap items-center gap-3 px-4 py-4 sm:px-6"
-  >
+  <header class="mx-auto flex w-full max-w-[1500px] flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
     <span aria-hidden="true" class="inline-flex">
       <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
         <rect width="32" height="32" rx="7" fill="var(--as-elevated)"></rect>
@@ -41,7 +39,11 @@ import { VisualizerApp } from '../react/VisualizerApp';
     <VisualizerApp client:load />
   </main>
 
-  <section id="how-it-works" class="mx-auto w-full max-w-[1500px] px-4 pb-10 sm:px-6" aria-labelledby="how-it-works-title">
+  <section
+    id="how-it-works"
+    class="mx-auto w-full max-w-[1500px] px-4 pb-10 sm:px-6"
+    aria-labelledby="how-it-works-title"
+  >
     <h2 id="how-it-works-title" class="mb-3 text-base font-bold tracking-tight">How it works</h2>
     <div class="grid gap-3 sm:grid-cols-3">
       <article
@@ -63,8 +65,8 @@ import { VisualizerApp } from '../react/VisualizerApp';
         <h3 class="mb-1 text-[13px] font-bold text-[var(--as-cyan)]">2 · We record the run</h3>
         <p class="text-[13px] leading-relaxed text-[var(--as-muted)]">
           Your code is instrumented and executed inside an isolated
-          <strong>Web Worker</strong> with a virtual event loop. Every stack push, timer,
-          microtask and task becomes an event — deterministically, in real execution order.
+          <strong>Web Worker</strong> with a virtual event loop. Every stack push, timer, microtask and
+          task becomes an event — deterministically, in real execution order.
         </p>
       </article>
       <article
@@ -81,7 +83,9 @@ import { VisualizerApp } from '../react/VisualizerApp';
     </div>
   </section>
 
-  <footer class="mx-auto w-full max-w-[1500px] px-4 pb-8 text-[12px] text-[var(--as-muted)] sm:px-6">
+  <footer
+    class="mx-auto w-full max-w-[1500px] px-4 pb-8 text-[12px] text-[var(--as-muted)] sm:px-6"
+  >
     <p>
       AsyncScope — an educational JavaScript runtime visualizer. Everything runs locally in your
       browser; no code leaves this page.

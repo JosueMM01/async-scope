@@ -6,11 +6,7 @@
  */
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 // Deep imports keep the Babel pipeline out of the main chunk (worker-only).
-import {
-  DEFAULT_EXAMPLE_ID,
-  EXAMPLES,
-  getExample,
-} from '../engine/examples';
+import { DEFAULT_EXAMPLE_ID, EXAMPLES, getExample } from '../engine/examples';
 import type { TraceEvent } from '../engine/types';
 import { CodeEditor } from './CodeEditor';
 import { Controls } from './Controls';
@@ -123,9 +119,7 @@ export function VisualizerApp() {
         return;
       }
       const target = event.target as HTMLElement | null;
-      if (
-        target?.closest('.as-editor-host, input, select, textarea, [contenteditable]') != null
-      ) {
+      if (target?.closest('.as-editor-host, input, select, textarea, [contenteditable]') != null) {
         return;
       }
       if (event.key === ' ') {
@@ -177,9 +171,7 @@ export function VisualizerApp() {
   const hasTrace = !!trace && pbStatus !== 'recording';
   const activeLine = hasTrace ? current.currentLine : null;
 
-  const editor = (
-    <CodeEditor value={source} onChange={setSource} activeLine={activeLine} />
-  );
+  const editor = <CodeEditor value={source} onChange={setSource} activeLine={activeLine} />;
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -240,100 +232,104 @@ export function VisualizerApp() {
           Rendered only when not desktop so the CodeMirror instance is
           mounted exactly once (either here or in the workbench). */}
       {!isDesktop && (
-      <div>
-        <div className="flex flex-wrap gap-1.5 pb-1" role="tablist" aria-label="Visualizer sections">
-          {MOBILE_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={mobileTab === tab.id}
-              type="button"
-              onClick={() => setMobileTab(tab.id)}
-              className={`as-tab rounded-md border px-3 py-1.5 text-[12px] font-semibold ${
-                mobileTab === tab.id ? 'as-tab-active' : 'as-tab-idle'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        {mobileTab === 'editor' && (
+        <div>
           <div
-            role="tabpanel"
-            aria-label="Editor"
-            className="as-editor-frame h-[48vh] min-h-[280px]"
+            className="flex flex-wrap gap-1.5 pb-1"
+            role="tablist"
+            aria-label="Visualizer sections"
           >
-            {editor}
+            {MOBILE_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={mobileTab === tab.id}
+                type="button"
+                onClick={() => setMobileTab(tab.id)}
+                className={`as-tab rounded-md border px-3 py-1.5 text-[12px] font-semibold ${
+                  mobileTab === tab.id ? 'as-tab-active' : 'as-tab-idle'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        )}
-        {mobileTab === 'runtime' && (
-          <div role="tabpanel" aria-label="Stack and APIs" className="flex flex-col gap-2">
-            <EventLoopBadge loop={current.loop} stackEmpty={current.stack.length === 0} />
-            <div className="max-h-[38vh] min-h-[170px]">
-              <CallStackPanel frames={current.stack} />
+          {mobileTab === 'editor' && (
+            <div
+              role="tabpanel"
+              aria-label="Editor"
+              className="as-editor-frame h-[48vh] min-h-[280px]"
+            >
+              {editor}
             </div>
-            <div className="max-h-[38vh] min-h-[170px]">
-              <WebApisPanel timers={current.apis} />
+          )}
+          {mobileTab === 'runtime' && (
+            <div role="tabpanel" aria-label="Stack and APIs" className="flex flex-col gap-2">
+              <EventLoopBadge loop={current.loop} stackEmpty={current.stack.length === 0} />
+              <div className="max-h-[38vh] min-h-[170px]">
+                <CallStackPanel frames={current.stack} />
+              </div>
+              <div className="max-h-[38vh] min-h-[170px]">
+                <WebApisPanel timers={current.apis} />
+              </div>
             </div>
-          </div>
-        )}
-        {mobileTab === 'queues' && (
-          <div role="tabpanel" aria-label="Queues" className="flex flex-col gap-2">
-            <div className="max-h-[40vh] min-h-[170px]">
-              <MicrotaskQueuePanel items={current.microtasks} />
+          )}
+          {mobileTab === 'queues' && (
+            <div role="tabpanel" aria-label="Queues" className="flex flex-col gap-2">
+              <div className="max-h-[40vh] min-h-[170px]">
+                <MicrotaskQueuePanel items={current.microtasks} />
+              </div>
+              <div className="max-h-[40vh] min-h-[170px]">
+                <TaskQueuePanel items={current.tasks} />
+              </div>
             </div>
-            <div className="max-h-[40vh] min-h-[170px]">
-              <TaskQueuePanel items={current.tasks} />
+          )}
+          {mobileTab === 'output' && (
+            <div role="tabpanel" aria-label="Console and timeline" className="flex flex-col gap-2">
+              <div className="h-[28vh] min-h-[150px]">
+                <ConsolePanel lines={current.console} />
+              </div>
+              <div className="h-[34vh] min-h-[170px]">
+                <TimelinePanel
+                  entries={current.timeline}
+                  currentIndex={Math.max(0, current.timeline.length - 1)}
+                  onSeekToEntry={timelineSeek}
+                />
+              </div>
             </div>
-          </div>
-        )}
-        {mobileTab === 'output' && (
-          <div role="tabpanel" aria-label="Console and timeline" className="flex flex-col gap-2">
-            <div className="h-[28vh] min-h-[150px]">
-              <ConsolePanel lines={current.console} />
-            </div>
-            <div className="h-[34vh] min-h-[170px]">
-              <TimelinePanel
-                entries={current.timeline}
-                currentIndex={Math.max(0, current.timeline.length - 1)}
-                onSeekToEntry={timelineSeek}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
       {/* Desktop: panels workbench. */}
       {isDesktop && (
-      <div className="as-workbench min-h-[560px] gap-2 grid">
-        <div className="as-cell-editor as-editor-frame min-h-0">{editor}</div>
-        <div className="as-cell-side flex min-h-0 flex-col gap-2">
-          <EventLoopBadge loop={current.loop} stackEmpty={current.stack.length === 0} />
-          <div className="min-h-[120px] flex-1">
-            <CallStackPanel frames={current.stack} />
+        <div className="as-workbench min-h-[560px] gap-2 grid">
+          <div className="as-cell-editor as-editor-frame min-h-0">{editor}</div>
+          <div className="as-cell-side flex min-h-0 flex-col gap-2">
+            <EventLoopBadge loop={current.loop} stackEmpty={current.stack.length === 0} />
+            <div className="min-h-[120px] flex-1">
+              <CallStackPanel frames={current.stack} />
+            </div>
+            <div className="min-h-[110px] flex-1">
+              <WebApisPanel timers={current.apis} />
+            </div>
+            <div className="min-h-[110px] flex-1">
+              <MicrotaskQueuePanel items={current.microtasks} />
+            </div>
+            <div className="min-h-[110px] flex-1">
+              <TaskQueuePanel items={current.tasks} />
+            </div>
           </div>
-          <div className="min-h-[110px] flex-1">
-            <WebApisPanel timers={current.apis} />
+          <div className="as-cell-timeline min-h-0">
+            <TimelinePanel
+              entries={current.timeline}
+              currentIndex={Math.max(0, current.timeline.length - 1)}
+              onSeekToEntry={timelineSeek}
+            />
           </div>
-          <div className="min-h-[110px] flex-1">
-            <MicrotaskQueuePanel items={current.microtasks} />
-          </div>
-          <div className="min-h-[110px] flex-1">
-            <TaskQueuePanel items={current.tasks} />
+          <div className="as-cell-console min-h-0">
+            <ConsolePanel lines={current.console} />
           </div>
         </div>
-        <div className="as-cell-timeline min-h-0">
-          <TimelinePanel
-            entries={current.timeline}
-            currentIndex={Math.max(0, current.timeline.length - 1)}
-            onSeekToEntry={timelineSeek}
-          />
-        </div>
-        <div className="as-cell-console min-h-0">
-          <ConsolePanel lines={current.console} />
-        </div>
-      </div>
       )}
     </div>
   );

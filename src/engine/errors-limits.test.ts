@@ -94,7 +94,9 @@ describe('unsupported features', () => {
 
 describe('runtime errors', () => {
   it('records a synchronous throw and continues scheduled work', () => {
-    const events = run(`setTimeout(() => console.log("timer still fires"), 0);\nthrow new Error("sync boom");`);
+    const events = run(
+      `setTimeout(() => console.log("timer still fires"), 0);\nthrow new Error("sync boom");`,
+    );
     expect(consoleText(events)).toEqual(['timer still fires']);
     const error = firstOf(events, 'error');
     expect(error?.kind).toBe('sync');
@@ -102,7 +104,9 @@ describe('runtime errors', () => {
   });
 
   it('unwinds the call stack on a throw', () => {
-    const events = run(`function a() {\n  b();\n}\nfunction b() {\n  throw new Error("deep");\n}\ntry { a(); } catch (e) {}`);
+    const events = run(
+      `function a() {\n  b();\n}\nfunction b() {\n  throw new Error("deep");\n}\ntry { a(); } catch (e) {}`,
+    );
     const unwindPops = allOf(events, 'stack:pop').filter((e) => e.reason === 'error');
     expect(unwindPops.length).toBe(0); // try/finally in wrappers popped normally
     const names = allOf(events, 'stack:pop').map((e) => e.name);
@@ -110,13 +114,17 @@ describe('runtime errors', () => {
   });
 
   it('errors inside timer callbacks do not stop later tasks', () => {
-    const events = run(`setTimeout(() => { throw new Error("t1"); }, 0);\nsetTimeout(() => console.log("t2 ok"), 0);`);
+    const events = run(
+      `setTimeout(() => { throw new Error("t1"); }, 0);\nsetTimeout(() => console.log("t2 ok"), 0);`,
+    );
     expect(consoleText(events)).toEqual(['t2 ok']);
     expect(firstOf(events, 'error')?.message).toContain('t1');
   });
 
   it('reports unhandled rejections', () => {
-    const events = run(`Promise.reject(new Error("unhandled"));\nsetTimeout(() => console.log("after"), 0);`);
+    const events = run(
+      `Promise.reject(new Error("unhandled"));\nsetTimeout(() => console.log("after"), 0);`,
+    );
     const error = firstOf(events, 'error');
     expect(error?.kind).toBe('unhandled-rejection');
     expect(error?.message).toContain('Uncaught (in promise) Error: unhandled');
@@ -124,7 +132,9 @@ describe('runtime errors', () => {
   });
 
   it('does not report rejections handled later in the same drain', () => {
-    const events = run(`const p = Promise.reject(new Error("late catch"));\np.catch((e) => console.log("handled"));\np.catch(() => {});`);
+    const events = run(
+      `const p = Promise.reject(new Error("late catch"));\np.catch((e) => console.log("handled"));\np.catch(() => {});`,
+    );
     const errors = allOf(events, 'error');
     expect(errors.length).toBe(0);
     expect(consoleText(events)).toEqual(['handled']);

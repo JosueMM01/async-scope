@@ -35,7 +35,14 @@ export type TraceEvent = EventBase &
     | { type: 'stack:pop'; name: string; reason: StackPopReason }
     | { type: 'loc'; to: number }
     | { type: 'console'; level: LogLevel; text: string }
-    | { type: 'api:schedule'; timerId: number; kind: TimerKind; delay: number; label: string; dueTime: number }
+    | {
+        type: 'api:schedule';
+        timerId: number;
+        kind: TimerKind;
+        delay: number;
+        label: string;
+        dueTime: number;
+      }
     | { type: 'api:clear'; timerId: number }
     | { type: 'api:complete'; timerId: number }
     | { type: 'task:enqueue'; taskId: number; timerId: number; label: string; dueTime: number }
@@ -81,16 +88,7 @@ export interface ConsoleLine {
 }
 
 export type TimelineKind =
-  | 'start'
-  | 'stack'
-  | 'api'
-  | 'microtask'
-  | 'task'
-  | 'loop'
-  | 'console'
-  | 'error'
-  | 'end'
-  | 'time';
+  'start' | 'stack' | 'api' | 'microtask' | 'task' | 'loop' | 'console' | 'error' | 'end' | 'time';
 
 export interface TimelineEntry {
   id: number;
@@ -127,9 +125,7 @@ export interface CompileError {
   line: number | null;
 }
 
-export type RunOutcome =
-  | { ok: true; events: TraceEvent[] }
-  | { ok: false; error: CompileError };
+export type RunOutcome = { ok: true; events: TraceEvent[] } | { ok: false; error: CompileError };
 
 /** Resource limits enforced while recording a program. */
 export interface EngineLimits {

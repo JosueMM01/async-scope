@@ -153,10 +153,11 @@ export function applyInstrumentation(ast: t.Node, ctx: TransformContext): void {
           const resumed = t.yieldExpression(before, false);
           YIELD_DONE.add(resumed); // the replacement is re-traversed
           path.replaceWith(
-            t.callExpression(
-              t.memberExpression(t.identifier(AS), t.identifier('afterYield')),
-              [resumed, t.stringLiteral(name), line],
-            ),
+            t.callExpression(t.memberExpression(t.identifier(AS), t.identifier('afterYield')), [
+              resumed,
+              t.stringLiteral(name),
+              line,
+            ]),
           );
         },
       },

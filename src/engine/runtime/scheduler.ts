@@ -274,7 +274,11 @@ export class VirtualScheduler implements PromiseHost {
       this.pushEvent({ type: 'api:complete', timerId: entry.timerId });
       if (entry.period !== null) {
         // setInterval: re-arm for the next period before running the callback.
-        const reEntry: TimerEntry = { ...entry, dueTime: this.virtualTime + entry.period, seq: ++this.timerSeq };
+        const reEntry: TimerEntry = {
+          ...entry,
+          dueTime: this.virtualTime + entry.period,
+          seq: ++this.timerSeq,
+        };
         this.timers.set(reEntry.timerId, reEntry);
         this.pushEvent({
           type: 'api:schedule',
@@ -293,7 +297,12 @@ export class VirtualScheduler implements PromiseHost {
         label: entry.label,
         dueTime: entry.dueTime,
       });
-      this.tasks.push({ taskId, timerId: entry.timerId, label: entry.label, callback: entry.callback });
+      this.tasks.push({
+        taskId,
+        timerId: entry.timerId,
+        label: entry.label,
+        callback: entry.callback,
+      });
     }
   }
 

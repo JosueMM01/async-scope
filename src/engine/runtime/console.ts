@@ -25,9 +25,7 @@ class Circle {
 }
 
 function truncate(text: string): string {
-  return text.length > MAX_STRING_LENGTH
-    ? `${text.slice(0, MAX_STRING_LENGTH)}…`
-    : text;
+  return text.length > MAX_STRING_LENGTH ? `${text.slice(0, MAX_STRING_LENGTH)}…` : text;
 }
 
 /** Formats a value the way a developer expects in a console. */
@@ -83,7 +81,9 @@ export function serializeValue(value: unknown, depth = 0, circle?: Circle): stri
       const items = [...map.entries()].slice(0, MAX_ARRAY_ITEMS);
       const suffix = map.size > items.length ? `, … +${map.size - items.length}` : '';
       return `Map(${map.size}) {${items
-        .map(([k, v]) => ` ${serializeValue(k, depth + 1, c)} => ${serializeValue(v, depth + 1, c)}`)
+        .map(
+          ([k, v]) => ` ${serializeValue(k, depth + 1, c)} => ${serializeValue(v, depth + 1, c)}`,
+        )
         .join(',')}${suffix} }`;
     }
     if (typeof Set !== 'undefined' && value instanceof Set) {
@@ -105,8 +105,7 @@ export function serializeValue(value: unknown, depth = 0, circle?: Circle): stri
     const total = Object.keys(value as Record<string, unknown>).length;
     const suffix = total > entries.length ? `, … +${total - entries.length}` : '';
     const ctor = (value as object).constructor;
-    const tag =
-      ctor && ctor !== Object && ctor.name ? `${ctor.name} ` : '';
+    const tag = ctor && ctor !== Object && ctor.name ? `${ctor.name} ` : '';
     return `${tag}{ ${entries
       .map(([k, v]) => `${k}: ${serializeValue(v, depth + 1, c)}`)
       .join(', ')}${suffix} }`;
@@ -121,7 +120,9 @@ export function formatArguments(args: unknown[]): string {
 }
 
 /** Creates the `console` object injected into the sandbox. */
-export function createSandboxConsole(emit: (level: LogLevel, text: string) => void): SandboxConsole {
+export function createSandboxConsole(
+  emit: (level: LogLevel, text: string) => void,
+): SandboxConsole {
   const make =
     (level: LogLevel) =>
     (...args: unknown[]): void => {

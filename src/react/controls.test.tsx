@@ -31,10 +31,7 @@ describe('playback reducer', () => {
   });
 
   it('records, completes and auto-plays from the first step', () => {
-    const playback = dispatchAll([
-      { type: 'run-start' },
-      { type: 'run-complete', events },
-    ]);
+    const playback = dispatchAll([{ type: 'run-start' }, { type: 'run-complete', events }]);
     expect(playback.status).toBe('playing');
     expect(playback.cursor).toBe(0);
     expect(playback.states).toHaveLength(events.length + 1);
@@ -42,10 +39,7 @@ describe('playback reducer', () => {
   });
 
   it('pauses and resumes', () => {
-    const playback = dispatchAll([
-      { type: 'run-complete', events },
-      { type: 'pause' },
-    ]);
+    const playback = dispatchAll([{ type: 'run-complete', events }, { type: 'pause' }]);
     expect(playback.status).toBe('paused');
     const resumed = dispatchAll([
       { type: 'run-complete', events },

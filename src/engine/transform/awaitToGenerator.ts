@@ -102,9 +102,7 @@ function uniqueGenName(base: string, ctx: TransformContext): t.Identifier {
 
 /** Normalizes an async function body into a block body for the generator. */
 function generatorBody(body: t.BlockStatement | t.Expression): t.BlockStatement {
-  return body.type === 'BlockStatement'
-    ? body
-    : t.blockStatement([t.returnStatement(body)]);
+  return body.type === 'BlockStatement' ? body : t.blockStatement([t.returnStatement(body)]);
 }
 
 export function transformAsyncFunctions(ast: t.Node, ctx: TransformContext): void {
@@ -134,7 +132,9 @@ export function transformAsyncFunctions(ast: t.Node, ctx: TransformContext): voi
             );
             tctx.displayNames.set(genDecl, displayName);
             const wrapper = t.functionDeclaration(
-              originalId ? t.cloneNode(originalId) : t.identifier(`__asAnonFn${++tctx.genCounter.n}`),
+              originalId
+                ? t.cloneNode(originalId)
+                : t.identifier(`__asAnonFn${++tctx.genCounter.n}`),
               cloneParams(node.params),
               t.blockStatement([
                 t.returnStatement(

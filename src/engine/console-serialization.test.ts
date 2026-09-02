@@ -56,7 +56,9 @@ describe('console serialization', () => {
   });
 
   it('renders sandbox promises with their state', () => {
-    const events = run('const p = Promise.resolve(5);\nconsole.log(p);\nconsole.log(Promise.reject(new Error("x")));');
+    const events = run(
+      'const p = Promise.resolve(5);\nconsole.log(p);\nconsole.log(Promise.reject(new Error("x")));',
+    );
     const texts = consoleText(events);
     expect(texts[0]).toBe('Promise { 5 }');
     expect(texts[1]).toBe('Promise { <rejected> Error: x }');
@@ -78,25 +80,57 @@ describe('console serialization', () => {
 
 describe('timeline messages', () => {
   it('describes the global start and end', () => {
-    expect(eventToTimelineEntry(ev({ type: 'execution:start' }), 1)?.text).toContain('Global execution starts');
-    expect(eventToTimelineEntry(ev({ type: 'execution:end', ok: true }), 2)?.text).toContain('Execution complete');
+    expect(eventToTimelineEntry(ev({ type: 'execution:start' }), 1)?.text).toContain(
+      'Global execution starts',
+    );
+    expect(eventToTimelineEntry(ev({ type: 'execution:end', ok: true }), 2)?.text).toContain(
+      'Execution complete',
+    );
   });
 
   it('describes stack pushes, pops, suspensions and resumes', () => {
-    expect(eventToTimelineEntry(ev({ type: 'stack:push', frameId: 1, name: 'f', reason: 'call' }), 1)?.text).toContain('Call f()');
-    expect(eventToTimelineEntry(ev({ type: 'stack:push', frameId: 1, name: 'f', reason: 'resume' }), 1)?.text).toContain('resumes');
-    expect(eventToTimelineEntry(ev({ type: 'stack:pop', name: 'f', reason: 'suspend' }), 1)?.text).toContain('suspends');
-    expect(eventToTimelineEntry(ev({ type: 'stack:pop', name: 'f', reason: 'return' }), 1)?.text).toContain('returns');
+    expect(
+      eventToTimelineEntry(ev({ type: 'stack:push', frameId: 1, name: 'f', reason: 'call' }), 1)
+        ?.text,
+    ).toContain('Call f()');
+    expect(
+      eventToTimelineEntry(ev({ type: 'stack:push', frameId: 1, name: 'f', reason: 'resume' }), 1)
+        ?.text,
+    ).toContain('resumes');
+    expect(
+      eventToTimelineEntry(ev({ type: 'stack:pop', name: 'f', reason: 'suspend' }), 1)?.text,
+    ).toContain('suspends');
+    expect(
+      eventToTimelineEntry(ev({ type: 'stack:pop', name: 'f', reason: 'return' }), 1)?.text,
+    ).toContain('returns');
   });
 
   it('describes timer lifecycle', () => {
-    expect(eventToTimelineEntry(ev({ type: 'api:schedule', timerId: 1, kind: 'timeout', delay: 0, label: 'cb', dueTime: 0 }), 1)?.text).toContain('setTimeout');
-    expect(eventToTimelineEntry(ev({ type: 'api:complete', timerId: 1 }), 1)?.text).toContain('Task Queue');
-    expect(eventToTimelineEntry(ev({ type: 'task:dequeue', taskId: 1, label: 'cb' }), 1)?.text).toContain('Event Loop');
+    expect(
+      eventToTimelineEntry(
+        ev({
+          type: 'api:schedule',
+          timerId: 1,
+          kind: 'timeout',
+          delay: 0,
+          label: 'cb',
+          dueTime: 0,
+        }),
+        1,
+      )?.text,
+    ).toContain('setTimeout');
+    expect(eventToTimelineEntry(ev({ type: 'api:complete', timerId: 1 }), 1)?.text).toContain(
+      'Task Queue',
+    );
+    expect(
+      eventToTimelineEntry(ev({ type: 'task:dequeue', taskId: 1, label: 'cb' }), 1)?.text,
+    ).toContain('Event Loop');
   });
 
   it('describes microtask events', () => {
-    expect(eventToTimelineEntry(ev({ type: 'microtask:enqueue', id: 1, label: 'then' }), 1)?.text).toContain('Microtask Queue');
+    expect(
+      eventToTimelineEntry(ev({ type: 'microtask:enqueue', id: 1, label: 'then' }), 1)?.text,
+    ).toContain('Microtask Queue');
   });
 
   it('skips loc events', () => {

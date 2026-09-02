@@ -45,7 +45,10 @@ export function compile(source: string): CompileResult {
     applyInstrumentation(ast, ctx);
   } catch (error) {
     if (error instanceof UnsupportedFeatureError) {
-      return { ok: false, error: { phase: 'unsupported', message: error.message, line: error.line } };
+      return {
+        ok: false,
+        error: { phase: 'unsupported', message: error.message, line: error.line },
+      };
     }
     const err = error as { message?: string };
     return {

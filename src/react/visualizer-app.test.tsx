@@ -138,27 +138,23 @@ describe('VisualizerApp', () => {
     expect(screen.getByText(/ready/i)).toBeInTheDocument();
   });
 
-  it(
-    'renders the trace events list into the timeline',
-    { timeout: 20_000 },
-    async () => {
-      const user = userEvent.setup();
-      render(<VisualizerApp />);
-      await user.selectOptions(screen.getByLabelText('Examples'), 'settimeout');
-      await user.selectOptions(screen.getByLabelText('Speed'), '4');
-      await user.click(screen.getByRole('button', { name: /run/i }));
-      await user.click(screen.getByRole('tab', { name: 'Console & Timeline' }));
-      const region = screen.getByRole('region', { name: /execution timeline/i });
-      await waitFor(
-        () => {
-          expect(region).toHaveTextContent(/global execution starts/i);
-          expect(region).toHaveTextContent(/setTimeout registered/i);
-          expect(region).toHaveTextContent(/event loop/i);
-        },
-        { timeout: 15_000 },
-      );
-    },
-  );
+  it('renders the trace events list into the timeline', { timeout: 20_000 }, async () => {
+    const user = userEvent.setup();
+    render(<VisualizerApp />);
+    await user.selectOptions(screen.getByLabelText('Examples'), 'settimeout');
+    await user.selectOptions(screen.getByLabelText('Speed'), '4');
+    await user.click(screen.getByRole('button', { name: /run/i }));
+    await user.click(screen.getByRole('tab', { name: 'Console & Timeline' }));
+    const region = screen.getByRole('region', { name: /execution timeline/i });
+    await waitFor(
+      () => {
+        expect(region).toHaveTextContent(/global execution starts/i);
+        expect(region).toHaveTextContent(/setTimeout registered/i);
+        expect(region).toHaveTextContent(/event loop/i);
+      },
+      { timeout: 15_000 },
+    );
+  });
 });
 
 export type { TraceEvent };

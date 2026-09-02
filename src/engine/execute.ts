@@ -46,16 +46,16 @@ export function executeProgram(source: string, limits: EngineLimits = DEFAULT_LI
   } finally {
     resetPromiseHost();
   }
-  scheduler.pushTerminalEvent({ type: 'execution:end', ok: !scheduler.fatal && !scheduler.hadError });
+  scheduler.pushTerminalEvent({
+    type: 'execution:end',
+    ok: !scheduler.fatal && !scheduler.hadError,
+  });
 
   return { ok: true, events: scheduler.events };
 }
 
 function runUserProgram(
-  program: (
-    handles: RuntimeHandles,
-    ...globals: unknown[]
-  ) => unknown,
+  program: (handles: RuntimeHandles, ...globals: unknown[]) => unknown,
   handles: RuntimeHandles,
   globals: SandboxGlobals,
 ): void {

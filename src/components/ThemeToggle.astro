@@ -25,9 +25,7 @@
     if (label) label.textContent = theme === 'dark' ? 'Light' : 'Dark';
   }
 
-  apply(
-    (document.documentElement.getAttribute('data-theme') as 'light' | 'dark' | null) ?? 'dark',
-  );
+  apply((document.documentElement.getAttribute('data-theme') as 'light' | 'dark' | null) ?? 'dark');
 
   button?.addEventListener('click', () => {
     const current =

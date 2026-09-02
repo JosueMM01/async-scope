@@ -5,13 +5,7 @@
  * Stepping the UI is therefore trivial (and deterministic): "previous step"
  * is just index - 1, with no runtime reversal needed.
  */
-import type {
-  ApiTimer,
-  ConsoleLine,
-  TaskItem,
-  TraceEvent,
-  VisualizationState,
-} from '../types';
+import type { ApiTimer, ConsoleLine, TaskItem, TraceEvent, VisualizationState } from '../types';
 import { eventToTimelineEntry } from './messages';
 
 export function initialVisualizationState(): VisualizationState {

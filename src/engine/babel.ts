@@ -13,12 +13,10 @@ import type * as ParserNS from '@babel/parser';
 
 type MaybeDefault = { default?: unknown };
 
-export const traverse: typeof TraverseNS.default = (
-  (_traverse as unknown as MaybeDefault).default ?? _traverse
-) as typeof TraverseNS.default;
+export const traverse: typeof TraverseNS.default = ((_traverse as unknown as MaybeDefault)
+  .default ?? _traverse) as typeof TraverseNS.default;
 
-export const generate: typeof GenerateNS.default = (
-  (_generate as unknown as MaybeDefault).default ?? _generate
-) as typeof GenerateNS.default;
+export const generate: typeof GenerateNS.default = ((_generate as unknown as MaybeDefault)
+  .default ?? _generate) as typeof GenerateNS.default;
 
 export const parse: typeof ParserNS.parse = babelParse;

@@ -7,20 +7,10 @@
  */
 import { useMemo, useReducer } from 'react';
 import { buildStates, initialVisualizationState } from '../engine/trace/fold';
-import type {
-  CompileError,
-  TraceEvent,
-  VisualizationState,
-} from '../engine/types';
+import type { CompileError, TraceEvent, VisualizationState } from '../engine/types';
 
 export type PlaybackStatus =
-  | 'idle'
-  | 'recording'
-  | 'ready'
-  | 'playing'
-  | 'paused'
-  | 'done'
-  | 'error';
+  'idle' | 'recording' | 'ready' | 'playing' | 'paused' | 'done' | 'error';
 
 export interface PlaybackState {
   status: PlaybackStatus;
@@ -55,10 +45,7 @@ const initialPlaybackState: PlaybackState = {
   compileError: null,
 };
 
-export function playbackReducer(
-  state: PlaybackState,
-  action: PlaybackAction,
-): PlaybackState {
+export function playbackReducer(state: PlaybackState, action: PlaybackAction): PlaybackState {
   switch (action.type) {
     case 'run-start':
       return { ...state, status: 'recording', trace: null, cursor: 0, compileError: null };

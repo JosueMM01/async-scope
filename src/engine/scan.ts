@@ -88,10 +88,7 @@ export function scanForUnsupportedFeatures(ast: t.Node): void {
     ) {
       const node = path.node as t.Function;
       if (node.generator) {
-        unsupported(
-          'generator functions (function*) are not supported in Phase 1',
-          path.node,
-        );
+        unsupported('generator functions (function*) are not supported in Phase 1', path.node);
       }
     },
     YieldExpression(path) {

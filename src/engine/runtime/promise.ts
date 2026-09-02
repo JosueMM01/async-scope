@@ -299,11 +299,7 @@ function rejectThis(promise: SandboxPromise, reason: unknown): void {
   }
 }
 
-function settle(
-  promise: SandboxPromise,
-  state: 'fulfilled' | 'rejected',
-  value: unknown,
-): void {
+function settle(promise: SandboxPromise, state: 'fulfilled' | 'rejected', value: unknown): void {
   if (promise.state !== 'pending') return;
   promise.state = state;
   promise.value = value;

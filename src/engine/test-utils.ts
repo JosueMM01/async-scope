@@ -24,9 +24,7 @@ type ConsoleEvent = Extract<TraceEvent, { type: 'console' }>;
 
 /** Extracts console output in order. */
 export function consoleText(events: TraceEvent[]): string[] {
-  return events
-    .filter((e): e is ConsoleEvent => e.type === 'console')
-    .map((e) => e.text);
+  return events.filter((e): e is ConsoleEvent => e.type === 'console').map((e) => e.text);
 }
 
 /** Extracts event type sequence. */

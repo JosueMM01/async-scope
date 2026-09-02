@@ -37,9 +37,7 @@ const activeLineField = StateField.define<DecorationSet>({
         } else {
           const lineNumber = Math.min(Math.max(1, effect.value), tr.state.doc.lines);
           const line = tr.state.doc.line(lineNumber);
-          value = Decoration.set([
-            Decoration.line({ class: 'as-active-line' }).range(line.from),
-          ]);
+          value = Decoration.set([Decoration.line({ class: 'as-active-line' }).range(line.from)]);
         }
       }
     }

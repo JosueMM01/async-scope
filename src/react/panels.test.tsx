@@ -70,16 +70,21 @@ describe('WebApisPanel', () => {
 
 describe('queue panels', () => {
   it('renders microtask items and marks the next one', () => {
-    render(<MicrotaskQueuePanel items={[{ id: 1, label: 'then' }, { id: 2, label: 'then' }]} />);
+    render(
+      <MicrotaskQueuePanel
+        items={[
+          { id: 1, label: 'then' },
+          { id: 2, label: 'then' },
+        ]}
+      />,
+    );
     const region = screen.getByRole('region', { name: 'Microtask Queue' });
     expect(region).toHaveTextContent('then');
     expect(region).toHaveTextContent('next');
   });
 
   it('renders task items separately from microtasks', () => {
-    render(
-      <TaskQueuePanel items={[{ id: 1, label: 'callback', timerId: 1, dueTime: 0 }]} />,
-    );
+    render(<TaskQueuePanel items={[{ id: 1, label: 'callback', timerId: 1, dueTime: 0 }]} />);
     expect(screen.getByRole('region', { name: 'Task Queue' })).toHaveTextContent('callback');
     expect(screen.queryByRole('region', { name: 'Microtask Queue' })).not.toBeInTheDocument();
   });
@@ -143,8 +148,9 @@ describe('TimelinePanel', () => {
         onSeekToEntry={() => {}}
       />,
     );
-    expect(
-      screen.getByRole('button', { name: /global execution starts/i }),
-    ).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByRole('button', { name: /global execution starts/i })).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
   });
 });

@@ -15,10 +15,7 @@ function assertNever(value: never): never {
   throw new Error(`Unhandled trace variant: ${String(value)}`);
 }
 
-export function eventToTimelineEntry(
-  event: TraceEvent,
-  id: number,
-): TimelineEntry | null {
+export function eventToTimelineEntry(event: TraceEvent, id: number): TimelineEntry | null {
   const line = event.line;
   switch (event.type) {
     case 'execution:start':
