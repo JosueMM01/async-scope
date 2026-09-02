@@ -86,7 +86,8 @@ export function scanForUnsupportedFeatures(ast: t.Node): void {
     'FunctionDeclaration|FunctionExpression|ArrowFunctionExpression|ObjectMethod|ClassMethod|ClassPrivateMethod'(
       path,
     ) {
-      if (path.node.generator) {
+      const node = path.node as t.Function;
+      if (node.generator) {
         unsupported(
           'generator functions (function*) are not supported in Phase 1',
           path.node,

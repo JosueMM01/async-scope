@@ -35,7 +35,7 @@ export function executeProgram(source: string, limits: EngineLimits = DEFAULT_LI
     'Promise',
     'console',
     `"use strict";\n${compiled.code}`,
-  );
+  ) as (handles: RuntimeHandles, ...globals: unknown[]) => unknown;
 
   scheduler.pushEvent({ type: 'execution:start' });
   try {

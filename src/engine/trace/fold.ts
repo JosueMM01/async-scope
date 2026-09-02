@@ -9,7 +9,6 @@ import type {
   ApiTimer,
   ConsoleLine,
   TaskItem,
-  TimelineEntry,
   TraceEvent,
   VisualizationState,
 } from '../types';

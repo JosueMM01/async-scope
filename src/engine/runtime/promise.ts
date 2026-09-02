@@ -57,10 +57,14 @@ export class SandboxPromise {
   /** Brand used by the console serializer for `Promise { … }` previews. */
   static readonly brand = Symbol('asyncscope.promise');
 
-  private state: 'pending' | 'fulfilled' | 'rejected' = 'pending';
-  private value: unknown = undefined;
-  private reactions: Reaction[] = [];
-  private isHandled = false;
+  /** @internal Mutable state shared with the module-level resolution algorithm. */
+  state: 'pending' | 'fulfilled' | 'rejected' = 'pending';
+  /** @internal Settled value shared with the module-level resolution algorithm. */
+  value: unknown = undefined;
+  /** @internal Pending reactions shared with the module-level resolution algorithm. */
+  reactions: Reaction[] = [];
+  /** @internal Rejection tracking shared with the module-level resolution algorithm. */
+  isHandled = false;
 
   constructor(executor: (resolve: (v: unknown) => void, reject: (r: unknown) => void) => void) {
     if (typeof executor !== 'function') {
@@ -138,7 +142,7 @@ export class SandboxPromise {
     this.markHandled();
   }
 
-  static resolve(value?: unknown, internalLabel?: string): SandboxPromise {
+  static resolve(value?: unknown): SandboxPromise {
     if (value instanceof SandboxPromise) return value;
     const p = new SandboxPromise(noop);
     resolveThis(p, value);

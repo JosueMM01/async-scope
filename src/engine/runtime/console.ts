@@ -141,7 +141,7 @@ export function createSandboxConsole(emit: (level: LogLevel, text: string) => vo
       if (typeof prop === 'string' && prop in target) {
         return target[prop];
       }
-      return (...args: unknown[]): void => {
+      return (..._args: unknown[]): void => {
         emit('warn', `console.${String(prop)}() is not supported in AsyncScope yet`);
       };
     },

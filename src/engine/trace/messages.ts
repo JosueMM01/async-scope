@@ -11,6 +11,10 @@ function truncate(text: string, max = 90): string {
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
+function assertNever(value: never): never {
+  throw new Error(`Unhandled trace variant: ${String(value)}`);
+}
+
 export function eventToTimelineEntry(
   event: TraceEvent,
   id: number,
@@ -35,8 +39,9 @@ export function eventToTimelineEntry(
           : `Call ${event.name}() — pushed onto the call stack`,
         line,
       );
-    case 'stack:pop':
-      switch (event.reason) {
+    case 'stack:pop': {
+      const reason = event.reason;
+      switch (reason) {
         case 'return':
           return entry(id, 'stack', `${event.name}() returns — popped from the call stack`, line);
         case 'suspend':
@@ -48,8 +53,10 @@ export function eventToTimelineEntry(
           );
         case 'error':
           return entry(id, 'stack', `${event.name} popped while the error unwinds`, line);
+        default:
+          return assertNever(reason);
       }
-      return null;
+    }
     case 'console':
       return entry(
         id,
@@ -83,8 +90,9 @@ export function eventToTimelineEntry(
       return entry(id, 'microtask', `Microtask Queue: “${event.label}” enqueued`, line);
     case 'microtask:dequeue':
       return entry(id, 'microtask', `Microtask Queue: “${event.label}” runs`, line);
-    case 'loop:turn':
-      switch (event.action) {
+    case 'loop:turn': {
+      const action = event.action;
+      switch (action) {
         case 'drain-microtasks':
           return entry(
             id,
@@ -98,8 +106,10 @@ export function eventToTimelineEntry(
           return entry(id, 'loop', 'Event Loop: waiting — nothing to run yet', line);
         case 'idle':
           return entry(id, 'loop', 'Event Loop: idle', line);
+        default:
+          return assertNever(action);
       }
-      return null;
+    }
     case 'time:advance':
       return entry(id, 'time', `Virtual clock advances to ${event.to}ms`, line);
     case 'error':

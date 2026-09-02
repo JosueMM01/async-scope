@@ -50,7 +50,10 @@ function injected(stmt: t.Statement): t.Statement {
 }
 
 function isDirective(node: t.Statement): boolean {
-  return node.type === 'ExpressionStatement' && typeof node.directive === 'string';
+  return (
+    node.type === 'ExpressionStatement' &&
+    typeof (node as t.ExpressionStatement & { directive?: unknown }).directive === 'string'
+  );
 }
 
 /** Splits a statement list into [directive prologue, rest]. */
@@ -179,7 +182,7 @@ export function applyInstrumentation(ast: t.Node, ctx: TransformContext): void {
             LOC_DONE.has(node) ||
             node.type === 'BlockStatement' ||
             node.type === 'EmptyStatement' ||
-            (node.type === 'ExpressionStatement' && typeof node.directive === 'string')
+            isDirective(node)
           ) {
             return;
           }

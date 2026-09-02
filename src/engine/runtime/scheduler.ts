@@ -50,7 +50,8 @@ interface UnhandledEntry {
   reason: unknown;
 }
 
-type EventPayload = Omit<TraceEvent, 'line'>;
+type WithoutLine<T> = T extends TraceEvent ? Omit<T, 'line'> : never;
+type EventPayload = WithoutLine<TraceEvent>;
 
 export class VirtualScheduler implements PromiseHost {
   readonly events: TraceEvent[] = [];

@@ -91,8 +91,8 @@ function inferStaticName(path: NodePath<t.Function>): string | null {
   }
 }
 
-function cloneParams(params: readonly t.LVal[]): t.LVal[] {
-  return params.map((p) => t.cloneNode(p, true));
+function cloneParams<T extends t.Node>(params: readonly T[]): T[] {
+  return params.map((param) => t.cloneNode(param, true) as T);
 }
 
 function uniqueGenName(base: string, ctx: TransformContext): t.Identifier {
@@ -119,7 +119,7 @@ export function transformAsyncFunctions(ast: t.Node, ctx: TransformContext): voi
         const node = path.node as t.Function;
         if (!node.async || node.generator) return;
 
-        const displayName = inferStaticName(path) ?? '(anonymous)';
+        const displayName = inferStaticName(path as NodePath<t.Function>) ?? '(anonymous)';
 
         switch (node.type) {
           case 'FunctionDeclaration': {
@@ -194,7 +194,10 @@ export function transformAsyncFunctions(ast: t.Node, ctx: TransformContext): voi
           case 'ClassMethod':
           case 'ClassPrivateMethod': {
             const method = node as t.ObjectMethod | t.ClassMethod | t.ClassPrivateMethod;
-            const gen = t.functionExpression(null, method.params, method.body, true, false);
+            // Phase 1 parses JavaScript only, so TS parameter properties cannot
+            // occur even though Babel's shared ClassMethod type includes them.
+            const runtimeParams = method.params as t.FunctionParameter[];
+            const gen = t.functionExpression(null, runtimeParams, method.body, true, false);
             tctx.displayNames.set(gen, displayName);
             method.params = cloneParams(method.params);
             method.body = t.blockStatement([
