@@ -31,7 +31,6 @@ export function stripTypeScript(ast: t.Node): void {
       const node = path.node;
       const typedNode = node as typeof node & {
         declare?: boolean | null;
-        superTypeParameters?: t.TSTypeParameterInstantiation | null;
         abstract?: boolean | null;
       };
       if (typedNode.declare) {
@@ -39,7 +38,7 @@ export function stripTypeScript(ast: t.Node): void {
         return;
       }
       node.typeParameters = null;
-      typedNode.superTypeParameters = null;
+      node.superTypeArguments = null;
       node.implements = null;
       typedNode.abstract = null;
     },
