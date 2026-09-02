@@ -1,6 +1,6 @@
 {
   "name": "asyncscope",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Write modern JavaScript and watch how it executes: call stack, Web APIs, microtask queue, task queue and the event loop.",
   "type": "module",
   "private": true,
