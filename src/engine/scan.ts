@@ -83,9 +83,7 @@ export function scanForUnsupportedFeatures(ast: t.Node): void {
         unsupported('for await…of loops are not supported in Phase 1', path.node);
       }
     },
-    'FunctionDeclaration|FunctionExpression|ArrowFunctionExpression|ObjectMethod|ClassMethod|ClassPrivateMethod'(
-      path,
-    ) {
+    Function(path) {
       const node = path.node as t.Function;
       if (node.generator) {
         unsupported('generator functions (function*) are not supported in Phase 1', path.node);
@@ -98,6 +96,9 @@ export function scanForUnsupportedFeatures(ast: t.Node): void {
       if (path.node.callee.type === 'Import') {
         unsupported('dynamic import() is not supported', path.node);
       }
+    },
+    ImportExpression(path) {
+      unsupported('dynamic import() is not supported', path.node);
     },
     ReferencedIdentifier(path) {
       const name = path.node.name;
