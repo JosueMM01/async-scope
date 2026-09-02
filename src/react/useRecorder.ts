@@ -31,7 +31,10 @@ export interface Recorder {
 
 export function useRecorder(callbacks: RecorderCallbacks): Recorder {
   const callbacksRef = useRef(callbacks);
-  callbacksRef.current = callbacks;
+
+  useEffect(() => {
+    callbacksRef.current = callbacks;
+  }, [callbacks]);
 
   const workerRef = useRef<Worker | null>(null);
   const runRef = useRef<ActiveRun | null>(null);

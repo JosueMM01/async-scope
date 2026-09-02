@@ -5,7 +5,7 @@
  * Next/Previous/Restart/Seek are pure state transitions over an index into
  * the precomputed snapshot array. Stop clears everything.
  */
-import { useCallback, useMemo, useReducer } from 'react';
+import { useMemo, useReducer } from 'react';
 import { buildStates, initialVisualizationState } from '../engine/trace/fold';
 import type {
   CompileError,
@@ -153,8 +153,6 @@ export function usePlayback(): Playback {
 
   const current = states[Math.min(state.cursor, lastStep)]!;
 
-  const dispatch2 = useCallback(dispatch, []);
-
   return {
     ...state,
     states,
@@ -163,7 +161,7 @@ export function usePlayback(): Playback {
     canPlay,
     canPause,
     canStep,
-    dispatch: dispatch2,
+    dispatch,
     stepIntervalMs,
   };
 }

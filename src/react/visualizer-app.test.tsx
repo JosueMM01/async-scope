@@ -15,7 +15,11 @@ const mockedUseRecorder = vi.mocked(useRecorder);
 
 type Callbacks = Parameters<typeof useRecorder>[0];
 
-function mockRecorder(override?: Partial<Record<string, unknown>>) {
+interface RecorderOverride {
+  run?: (code: string, callbacks: Callbacks) => void;
+}
+
+function mockRecorder(override?: RecorderOverride) {
   const callbacks: Callbacks = {
     onTrace: () => {},
     onCompileError: () => {},
@@ -23,7 +27,7 @@ function mockRecorder(override?: Partial<Record<string, unknown>>) {
   };
   const run = vi.fn((code: string) => {
     if (override?.run) {
-      (override.run as (code: string, cbs: Callbacks) => void)(code, callbacks);
+      override.run(code, callbacks);
       return;
     }
     const outcome = executeProgram(code);

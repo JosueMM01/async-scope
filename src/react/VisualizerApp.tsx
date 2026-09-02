@@ -4,7 +4,7 @@
  * Owns: editor source, recorder (worker) lifecycle, playback state machine and
  * the responsive layout (panels on desktop, tabs on small screens).
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 // Deep imports keep the Babel pipeline out of the main chunk (worker-only).
 import {
   DEFAULT_EXAMPLE_ID,
@@ -67,8 +67,6 @@ function useIsDesktop(): boolean {
 
 export function VisualizerApp() {
   const [source, setSource] = useState<string>(loadInitialSource);
-  const sourceRef = useRef(source);
-  sourceRef.current = source;
 
   const playback = usePlayback();
   const dispatch = playback.dispatch;
@@ -88,8 +86,8 @@ export function VisualizerApp() {
 
   const run = useCallback(() => {
     dispatch({ type: 'run-start' });
-    recorder.run(sourceRef.current);
-  }, [dispatch, recorder]);
+    recorder.run(source);
+  }, [dispatch, recorder, source]);
 
   const stop = useCallback(() => {
     recorder.stop();

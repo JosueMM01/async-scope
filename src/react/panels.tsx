@@ -13,7 +13,6 @@ import type {
   QueueItem,
   TaskItem,
   TimelineEntry,
-  VisualizationState,
 } from '../engine';
 
 export function PanelShell({
