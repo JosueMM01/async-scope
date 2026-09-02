@@ -10,7 +10,10 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'AsyncScope' })).toBeVisible();
   // Start from a known editor state for every test.
-  await page.evaluate(() => window.localStorage.removeItem('asyncscope:source'));
+  await page.evaluate(() => {
+    window.localStorage.removeItem('asyncscope:source');
+    window.localStorage.removeItem('asyncscope:language');
+  });
   await page.reload();
 });
 
@@ -127,6 +130,15 @@ test('10 — custom code: the engine is not preset-only', async ({ page }) => {
   await expect
     .poll(() => consoleLines(page))
     .toEqual(['hello asyncscope', 'micro', 'hello asyncscope']);
+});
+
+test('11 — TypeScript types are erased while async behavior stays observable', async ({ page }) => {
+  await selectExample(page, 'TypeScript async flow');
+  await expect(page.getByLabel('Language')).toHaveValue('typescript');
+  await runAndWait(page);
+  await expect
+    .poll(() => consoleLines(page))
+    .toEqual(['start: Ada', 'scheduled', 'after await', 'timer: 20']);
 });
 
 test('visualizer panels reflect execution state during playback', async ({ page }) => {

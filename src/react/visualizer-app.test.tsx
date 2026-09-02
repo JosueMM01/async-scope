@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { VisualizerApp } from './VisualizerApp';
 import { useRecorder } from './useRecorder';
 import { executeProgram } from '../engine/execute';
-import type { CompileError, TraceEvent } from '../engine/types';
+import type { CompileError, SourceLanguage, TraceEvent } from '../engine/types';
 
 vi.mock('./useRecorder', () => ({
   useRecorder: vi.fn(),
@@ -16,7 +16,7 @@ const mockedUseRecorder = vi.mocked(useRecorder);
 type Callbacks = Parameters<typeof useRecorder>[0];
 
 interface RecorderOverride {
-  run?: (code: string, callbacks: Callbacks) => void;
+  run?: (code: string, language: SourceLanguage, callbacks: Callbacks) => void;
 }
 
 function mockRecorder(override?: RecorderOverride) {
@@ -25,12 +25,12 @@ function mockRecorder(override?: RecorderOverride) {
     onCompileError: () => {},
     onTimeout: () => {},
   };
-  const run = vi.fn((code: string) => {
+  const run = vi.fn((code: string, language: SourceLanguage) => {
     if (override?.run) {
-      override.run(code, callbacks);
+      override.run(code, language, callbacks);
       return;
     }
-    const outcome = executeProgram(code);
+    const outcome = executeProgram(code, { language });
     if (outcome.ok) callbacks.onTrace(outcome.events);
     else callbacks.onCompileError(outcome.error);
   });
@@ -79,6 +79,22 @@ describe('VisualizerApp', () => {
     expect(editorText).toContain('greet');
   });
 
+  it('selects TypeScript syntax and sends the language to the recorder', async () => {
+    const user = userEvent.setup();
+    const { run } = mockRecorder();
+    render(<VisualizerApp />);
+
+    await user.selectOptions(screen.getByLabelText('Examples'), 'typescript-async-flow');
+
+    expect(screen.getByLabelText('Language')).toHaveValue('typescript');
+    expect(document.querySelector('.cm-content')?.textContent).toContain('interface Learner');
+    await user.click(screen.getByRole('button', { name: /run/i }));
+    expect(run).toHaveBeenLastCalledWith(
+      expect.stringContaining('interface Learner'),
+      'typescript',
+    );
+  });
+
   it('switches mobile tabs', async () => {
     const user = userEvent.setup();
     render(<VisualizerApp />);
@@ -113,7 +129,7 @@ describe('VisualizerApp', () => {
 
   it('shows a clear banner for syntax errors', async () => {
     mockRecorder({
-      run: (_code, cbs) => {
+      run: (_code, _language, cbs) => {
         const error: CompileError = {
           phase: 'syntax',
           message: 'Unexpected token (1:7)',

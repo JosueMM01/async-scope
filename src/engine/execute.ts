@@ -10,10 +10,20 @@ import { compile } from './compile';
 import { configurePromiseHost, resetPromiseHost } from './runtime/promise';
 import { VirtualScheduler } from './runtime/scheduler';
 import { createRuntime, type RuntimeHandles, type SandboxGlobals } from './runtime/handles';
-import { DEFAULT_LIMITS, type EngineLimits, type RunOutcome } from './types';
+import { DEFAULT_LIMITS, type EngineLimits, type RunOutcome, type SourceLanguage } from './types';
 
-export function executeProgram(source: string, limits: EngineLimits = DEFAULT_LIMITS): RunOutcome {
-  const compiled = compile(source);
+export interface ExecuteOptions {
+  language?: SourceLanguage;
+  limits?: EngineLimits;
+}
+
+export function executeProgram(
+  source: string,
+  options: EngineLimits | ExecuteOptions = DEFAULT_LIMITS,
+): RunOutcome {
+  const limits = 'maxTicks' in options ? options : (options.limits ?? DEFAULT_LIMITS);
+  const language = 'maxTicks' in options ? 'javascript' : (options.language ?? 'javascript');
+  const compiled = compile(source, language);
   if (!compiled.ok) {
     return { ok: false, error: compiled.error };
   }

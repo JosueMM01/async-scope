@@ -45,7 +45,7 @@ for (const name of [
 self.onmessage = (event: MessageEvent<RunRequest>) => {
   const request = event.data;
   if (request.type !== 'run') return;
-  const outcome = executeProgram(request.code);
+  const outcome = executeProgram(request.code, { language: request.language });
   if (outcome.ok) {
     post({ type: 'trace', id: request.id, events: outcome.events });
   } else {

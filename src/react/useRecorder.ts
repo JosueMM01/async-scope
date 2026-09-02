@@ -6,7 +6,7 @@
  * stop() that hard-terminates (the only guaranteed way to kill runaway code).
  */
 import { useCallback, useEffect, useRef } from 'react';
-import type { CompileError, TraceEvent } from '../engine/types';
+import type { CompileError, SourceLanguage, TraceEvent } from '../engine/types';
 import { RUN_TIMEOUT_MS, type WorkerResponse } from '../worker/protocol';
 
 export interface RecorderCallbacks {
@@ -24,7 +24,7 @@ export interface Recorder {
   /** true while a run is in flight */
   isRunning: () => boolean;
   /** Starts (or restarts) a recording; ignores results of previous runs. */
-  run: (code: string) => void;
+  run: (code: string, language: SourceLanguage) => void;
   /** Hard-terminates the current run and discards the worker. */
   stop: () => void;
 }
@@ -75,7 +75,7 @@ export function useRecorder(callbacks: RecorderCallbacks): Recorder {
   }, []);
 
   const run = useCallback(
-    (code: string) => {
+    (code: string, language: SourceLanguage) => {
       terminate();
       const worker = spawn();
       const id = nextIdRef.current++;
@@ -88,7 +88,7 @@ export function useRecorder(callbacks: RecorderCallbacks): Recorder {
         }
       }, RUN_TIMEOUT_MS);
       runRef.current = { id, watchdog };
-      worker.postMessage({ type: 'run', id, code });
+      worker.postMessage({ type: 'run', id, code, language });
     },
     [spawn, terminate],
   );

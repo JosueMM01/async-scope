@@ -71,6 +71,15 @@ function resolveFunctionName(path: NodePath<t.Function>, ctx: TransformContext):
   if ((node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') && node.id) {
     return node.id.name;
   }
+  if (
+    node.type === 'ObjectMethod' ||
+    node.type === 'ClassMethod' ||
+    node.type === 'ClassPrivateMethod'
+  ) {
+    if (node.key.type === 'Identifier') return node.key.name;
+    if (node.key.type === 'PrivateName') return `#${node.key.id.name}`;
+    if (node.key.type === 'StringLiteral') return node.key.value;
+  }
   const parent = path.parentPath?.node;
   if (parent) {
     switch (parent.type) {
@@ -85,10 +94,8 @@ function resolveFunctionName(path: NodePath<t.Function>, ctx: TransformContext):
         if (parent.key.type === 'Identifier') return parent.key.name;
         break;
       case 'ClassMethod':
-      case 'ClassPrivateMethod':
       case 'ClassProperty':
         if (parent.key.type === 'Identifier') return parent.key.name;
-        if (parent.key.type === 'PrivateName') return `#${parent.key.id.name}`;
         break;
     }
   }

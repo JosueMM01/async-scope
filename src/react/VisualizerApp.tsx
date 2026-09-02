@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 // Deep imports keep the Babel pipeline out of the main chunk (worker-only).
 import { DEFAULT_EXAMPLE_ID, EXAMPLES, getExample } from '../engine/examples';
-import type { TraceEvent } from '../engine/types';
+import type { SourceLanguage, TraceEvent } from '../engine/types';
 import { CodeEditor } from './CodeEditor';
 import { Controls } from './Controls';
 import {
@@ -32,6 +32,7 @@ const MOBILE_TABS: Array<{ id: MobileTab; label: string }> = [
 ];
 
 const STORAGE_KEY = 'asyncscope:source';
+const LANGUAGE_STORAGE_KEY = 'asyncscope:language';
 
 function loadInitialSource(): string {
   if (typeof window === 'undefined') return getExample(DEFAULT_EXAMPLE_ID).code;
@@ -42,6 +43,17 @@ function loadInitialSource(): string {
     // Private mode or disabled storage — fall through to the default example.
   }
   return getExample(DEFAULT_EXAMPLE_ID).code;
+}
+
+function loadInitialLanguage(): SourceLanguage {
+  if (typeof window === 'undefined') return getExample(DEFAULT_EXAMPLE_ID).language;
+  try {
+    const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (stored === 'javascript' || stored === 'typescript') return stored;
+  } catch {
+    // Private mode or disabled storage — fall through to JavaScript.
+  }
+  return getExample(DEFAULT_EXAMPLE_ID).language;
 }
 
 const DESKTOP_QUERY = '(min-width: 1024px)';
@@ -63,6 +75,7 @@ function useIsDesktop(): boolean {
 
 export function VisualizerApp() {
   const [source, setSource] = useState<string>(loadInitialSource);
+  const [language, setLanguage] = useState<SourceLanguage>(loadInitialLanguage);
 
   const playback = usePlayback();
   const dispatch = playback.dispatch;
@@ -82,8 +95,8 @@ export function VisualizerApp() {
 
   const run = useCallback(() => {
     dispatch({ type: 'run-start' });
-    recorder.run(source);
-  }, [dispatch, recorder, source]);
+    recorder.run(source, language);
+  }, [dispatch, language, recorder, source]);
 
   const stop = useCallback(() => {
     recorder.stop();
@@ -95,12 +108,13 @@ export function VisualizerApp() {
     const id = setTimeout(() => {
       try {
         window.localStorage.setItem(STORAGE_KEY, source);
+        window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
       } catch {
         // Storage may be unavailable; persistence is best-effort.
       }
     }, 400);
     return () => clearTimeout(id);
-  }, [source]);
+  }, [language, source]);
 
   // Playback ticker: advance the cursor while playing.
   const { status, cursor, stepIntervalMs } = playback;
@@ -140,10 +154,13 @@ export function VisualizerApp() {
     const example = getExample(id);
     setExampleId(example.id);
     setSource(example.code);
+    setLanguage(example.language);
   }, []);
 
   const resetToExample = useCallback(() => {
-    setSource(getExample(exampleId).code);
+    const example = getExample(exampleId);
+    setSource(example.code);
+    setLanguage(example.language);
   }, [exampleId]);
 
   const { current, compileError, status: pbStatus, trace } = playback;
@@ -171,7 +188,9 @@ export function VisualizerApp() {
   const hasTrace = !!trace && pbStatus !== 'recording';
   const activeLine = hasTrace ? current.currentLine : null;
 
-  const editor = <CodeEditor value={source} onChange={setSource} activeLine={activeLine} />;
+  const editor = (
+    <CodeEditor value={source} onChange={setSource} activeLine={activeLine} language={language} />
+  );
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -195,6 +214,22 @@ export function VisualizerApp() {
                 {example.name}
               </option>
             ))}
+          </select>
+          <label
+            htmlFor="as-language"
+            className="text-[11px] font-semibold tracking-wider uppercase opacity-80"
+          >
+            Language
+          </label>
+          <select
+            id="as-language"
+            aria-label="Language"
+            className="as-select rounded-md border px-2 py-1 text-[12.5px]"
+            value={language}
+            onChange={(event) => setLanguage(event.target.value as SourceLanguage)}
+          >
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
           </select>
           <span className="hidden truncate text-[12px] opacity-70 md:inline">
             {getExample(exampleId).description}

@@ -5,8 +5,8 @@ import { VisualizerApp } from '../react/VisualizerApp';
 ---
 
 <BaseLayout
-  title="AsyncScope — Watch modern JavaScript execute"
-  description="Write modern JavaScript and watch, step by step, how the call stack, Web APIs, microtask queue, task queue and the event loop run it."
+  title="AsyncScope — Watch modern JavaScript and TypeScript execute"
+  description="Write modern JavaScript or TypeScript and watch, step by step, how the call stack, Web APIs, microtask queue, task queue and the event loop run it."
 >
   <header class="mx-auto flex w-full max-w-[1500px] flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
     <span aria-hidden="true" class="inline-flex">
@@ -20,7 +20,7 @@ import { VisualizerApp } from '../react/VisualizerApp';
         Async<span class="text-[var(--as-cyan)]">Scope</span>
       </h1>
       <p class="text-[12px] text-[var(--as-muted)]">
-        Write modern JavaScript and watch how it executes.
+        Write modern JavaScript or TypeScript and watch how it executes.
       </p>
     </div>
     <nav class="ml-auto flex items-center gap-2" aria-label="Page">
@@ -52,7 +52,7 @@ import { VisualizerApp } from '../react/VisualizerApp';
       >
         <h3 class="mb-1 text-[13px] font-bold text-[var(--as-green)]">1 · You write code</h3>
         <p class="text-[13px] leading-relaxed text-[var(--as-muted)]">
-          Use the supported subset of modern JavaScript: functions, promises,
+          Use the supported subset of modern JavaScript or TypeScript: functions, promises,
           <code class="font-mono">async</code>/<code class="font-mono">await</code>, timers and
           <code class="font-mono">queueMicrotask</code>. Nothing is executed until you press
           <strong>Run</strong>.
@@ -87,8 +87,8 @@ import { VisualizerApp } from '../react/VisualizerApp';
     class="mx-auto w-full max-w-[1500px] px-4 pb-8 text-[12px] text-[var(--as-muted)] sm:px-6"
   >
     <p>
-      AsyncScope — an educational JavaScript runtime visualizer. Everything runs locally in your
-      browser; no code leaves this page.
+      AsyncScope — an educational JavaScript and TypeScript runtime visualizer. TypeScript types are
+      erased before execution. Everything runs locally in your browser; no code leaves this page.
     </p>
   </footer>
 </BaseLayout>
