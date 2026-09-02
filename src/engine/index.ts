@@ -5,7 +5,7 @@
  * synchronously, whether it runs inside the sandbox worker (production) or
  * directly in Node (unit tests).
  */
-export { executeProgram } from './execute';
+export { executeProgram, type ExecuteOptions } from './execute';
 export { compile } from './compile';
 export { buildStates, initialVisualizationState, reduceVisualizationState } from './trace/fold';
 export { eventToTimelineEntry } from './trace/messages';
@@ -26,6 +26,7 @@ export type {
   RunOutcome,
   StackPopReason,
   StackPushReason,
+  SourceLanguage,
   TaskItem,
   TimelineEntry,
   TimelineKind,

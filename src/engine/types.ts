@@ -10,6 +10,9 @@
 
 export type LogLevel = 'log' | 'info' | 'warn' | 'error';
 
+/** Source syntax accepted by the compiler. TypeScript types are erased before execution. */
+export type SourceLanguage = 'javascript' | 'typescript';
+
 export type TimerKind = 'timeout' | 'interval';
 
 /** Kind of runtime failure surfaced to the user. */

@@ -63,6 +63,19 @@ function inferStaticName(path: NodePath<t.Function>): string | null {
   if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression') {
     if (node.id) return node.id.name;
   }
+  if (
+    node.type === 'ObjectMethod' ||
+    node.type === 'ClassMethod' ||
+    node.type === 'ClassPrivateMethod'
+  ) {
+    return node.key.type === 'Identifier'
+      ? node.key.name
+      : node.key.type === 'PrivateName'
+        ? `#${node.key.id.name}`
+        : node.key.type === 'StringLiteral'
+          ? node.key.value
+          : null;
+  }
   if (!parentPath) return null;
   const parent = parentPath.node;
   switch (parent.type) {
@@ -78,7 +91,6 @@ function inferStaticName(path: NodePath<t.Function>): string | null {
           ? parent.key.value
           : null;
     case 'ClassMethod':
-    case 'ClassPrivateMethod':
     case 'ClassProperty':
     case 'ClassAccessorProperty':
       return parent.key.type === 'Identifier'
@@ -109,10 +121,7 @@ export function transformAsyncFunctions(ast: t.Node, ctx: TransformContext): voi
   traverse(
     ast,
     {
-      'ArrowFunctionExpression|FunctionDeclaration|FunctionExpression|ObjectMethod|ClassMethod|ClassPrivateMethod'(
-        path,
-        state,
-      ) {
+      Function(path, state) {
         const tctx = state as TransformContext;
         const node = path.node as t.Function;
         if (!node.async || node.generator) return;
@@ -194,8 +203,8 @@ export function transformAsyncFunctions(ast: t.Node, ctx: TransformContext): voi
           case 'ClassMethod':
           case 'ClassPrivateMethod': {
             const method = node as t.ObjectMethod | t.ClassMethod | t.ClassPrivateMethod;
-            // Phase 1 parses JavaScript only, so TS parameter properties cannot
-            // occur even though Babel's shared ClassMethod type includes them.
+            // TypeScript syntax has already been erased, so parameter
+            // properties cannot reach the runtime transform.
             const runtimeParams = method.params as t.FunctionParameter[];
             const gen = t.functionExpression(null, runtimeParams, method.body, true, false);
             tctx.displayNames.set(gen, displayName);

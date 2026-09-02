@@ -17,7 +17,7 @@ describe('examples', () => {
 
   for (const example of EXAMPLES) {
     it(`runs "${example.name}" without internal errors`, () => {
-      const outcome = executeProgram(example.code);
+      const outcome = executeProgram(example.code, { language: example.language });
       expect(outcome.ok).toBe(true);
       if (!outcome.ok) return;
       const internal = outcome.events.filter(

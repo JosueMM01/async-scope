@@ -3,7 +3,13 @@
  * "executing line" highlight driven by the playback cursor.
  */
 import { useEffect, useRef } from 'react';
-import { EditorState, StateEffect, StateField, type Extension } from '@codemirror/state';
+import {
+  Compartment,
+  EditorState,
+  StateEffect,
+  StateField,
+  type Extension,
+} from '@codemirror/state';
 import { Decoration, EditorView, type DecorationSet, keymap, lineNumbers } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import {
@@ -14,17 +20,24 @@ import {
 } from '@codemirror/language';
 import { javascript } from '@codemirror/lang-javascript';
 import { tags as t } from '@lezer/highlight';
+import type { SourceLanguage } from '../engine/types';
 
 export interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   /** 1-based source line currently executing, or null. */
   activeLine: number | null;
+  language: SourceLanguage;
   readOnly?: boolean;
   ariaLabel?: string;
 }
 
 const setActiveLineEffect = StateEffect.define<number | null>();
+const languageCompartment = new Compartment();
+
+function languageExtension(language: SourceLanguage): Extension {
+  return javascript({ jsx: false, typescript: language === 'typescript' });
+}
 
 const activeLineField = StateField.define<DecorationSet>({
   create: () => Decoration.none,
@@ -108,8 +121,9 @@ export function CodeEditor({
   value,
   onChange,
   activeLine,
+  language,
   readOnly = false,
-  ariaLabel = 'JavaScript code editor',
+  ariaLabel,
 }: CodeEditorProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -131,7 +145,7 @@ export function CodeEditor({
           keymap.of([...defaultKeymap, ...historyKeymap]),
           indentUnit.of('  '),
           bracketMatching(),
-          javascript({ jsx: false }),
+          languageCompartment.of(languageExtension(language)),
           monokaiHighlight,
           editorTheme,
           activeLineField,
@@ -155,6 +169,12 @@ export function CodeEditor({
   }, [readOnly]);
 
   useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: languageCompartment.reconfigure(languageExtension(language)),
+    });
+  }, [language]);
+
+  useEffect(() => {
     const view = viewRef.current;
     if (view && value !== view.state.doc.toString()) {
       view.dispatch({
@@ -171,7 +191,9 @@ export function CodeEditor({
     <div
       ref={hostRef}
       role="group"
-      aria-label={ariaLabel}
+      aria-label={
+        ariaLabel ?? `${language === 'typescript' ? 'TypeScript' : 'JavaScript'} code editor`
+      }
       className="as-editor-host h-full min-h-0 overflow-hidden"
     />
   );
