@@ -6,6 +6,13 @@ node_modules/
 dist/
 .astro/
 
+# local architecture notes (intentionally not versioned)
+/docs/
+
+# local Codex tooling (not part of the product)
+/.agents/
+/skills-lock.json
+
 # test artifacts
 test-results/
 playwright-report/

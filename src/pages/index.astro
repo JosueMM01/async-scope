@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import { VisualizerApp } from '../react/VisualizerApp';
+---
+
+<BaseLayout
+  title="AsyncScope — Watch modern JavaScript execute"
+  description="Write modern JavaScript and watch, step by step, how the call stack, Web APIs, microtask queue, task queue and the event loop run it."
+>
+  <header class="mx-auto flex w-full max-w-[1500px] flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
+    <span aria-hidden="true" class="inline-flex">
+      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--as-elevated)"></rect>
+        <path d="M11 9l12 7-12 7z" fill="var(--as-cyan)"></path>
+      </svg>
+    </span>
+    <div class="min-w-0">
+      <h1 class="text-lg font-bold tracking-tight">
+        Async<span class="text-[var(--as-cyan)]">Scope</span>
+      </h1>
+      <p class="text-[12px] text-[var(--as-muted)]">
+        Write modern JavaScript and watch how it executes.
+      </p>
+    </div>
+    <nav class="ml-auto flex items-center gap-2" aria-label="Page">
+      <a
+        href="#how-it-works"
+        class="rounded-md border px-2.5 py-1.5 text-[12px] font-semibold"
+        style="background: var(--as-elevated); border-color: var(--as-border-strong);"
+      >
+        How it works
+      </a>
+      <ThemeToggle />
+    </nav>
+  </header>
+
+  <main id="visualizer" class="mx-auto w-full max-w-[1500px] px-4 pb-6 sm:px-6">
+    <VisualizerApp client:load />
+  </main>
+
+  <section
+    id="how-it-works"
+    class="mx-auto w-full max-w-[1500px] px-4 pb-10 sm:px-6"
+    aria-labelledby="how-it-works-title"
+  >
+    <h2 id="how-it-works-title" class="mb-3 text-base font-bold tracking-tight">How it works</h2>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <article
+        class="rounded-lg border p-4"
+        style="background: var(--as-surface); border-color: var(--as-border);"
+      >
+        <h3 class="mb-1 text-[13px] font-bold text-[var(--as-green)]">1 · You write code</h3>
+        <p class="text-[13px] leading-relaxed text-[var(--as-muted)]">
+          Use the supported subset of modern JavaScript: functions, promises,
+          <code class="font-mono">async</code>/<code class="font-mono">await</code>, timers and
+          <code class="font-mono">queueMicrotask</code>. Nothing is executed until you press
+          <strong>Run</strong>.
+        </p>
+      </article>
+      <article
+        class="rounded-lg border p-4"
+        style="background: var(--as-surface); border-color: var(--as-border);"
+      >
+        <h3 class="mb-1 text-[13px] font-bold text-[var(--as-cyan)]">2 · We record the run</h3>
+        <p class="text-[13px] leading-relaxed text-[var(--as-muted)]">
+          Your code is instrumented and executed inside an isolated
+          <strong>Web Worker</strong> with a virtual event loop. Every stack push, timer, microtask and
+          task becomes an event — deterministically, in real execution order.
+        </p>
+      </article>
+      <article
+        class="rounded-lg border p-4"
+        style="background: var(--as-surface); border-color: var(--as-border);"
+      >
+        <h3 class="mb-1 text-[13px] font-bold text-[var(--as-yellow)]">3 · You scrub time</h3>
+        <p class="text-[13px] leading-relaxed text-[var(--as-muted)]">
+          Play, pause, step forward and
+          <strong>backwards</strong>, or drag the timeline slider. Each step is a snapshot of the
+          whole runtime: stack, queues and console, exactly as they were.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <footer
+    class="mx-auto w-full max-w-[1500px] px-4 pb-8 text-[12px] text-[var(--as-muted)] sm:px-6"
+  >
+    <p>
+      AsyncScope — an educational JavaScript runtime visualizer. Everything runs locally in your
+      browser; no code leaves this page.
+    </p>
+  </footer>
+</BaseLayout>

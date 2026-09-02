@@ -20,8 +20,12 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `pnpm preview --port ${PORT} --strictPort`,
+    command: `pnpm exec astro preview --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
+    env: {
+      ...process.env,
+      ASTRO_PREVIEW_BACKGROUND: '0',
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },
