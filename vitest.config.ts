@@ -1,9 +1,8 @@
 import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  esbuild: {
-    jsx: 'automatic',
-  },
+  plugins: [react()],
   test: {
     projects: [
       {
@@ -17,7 +16,7 @@ export default defineConfig({
         test: {
           name: 'react',
           environment: 'jsdom',
-          include: ['src/react/**/*.test.tsx'],
+          include: ['src/react/**/*.test.{ts,tsx}'],
           setupFiles: ['src/react/test/setup.ts'],
         },
       },

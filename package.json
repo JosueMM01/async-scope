@@ -4,7 +4,7 @@
   "description": "Write modern JavaScript and watch how it executes: call stack, Web APIs, microtask queue, task queue and the event loop.",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@12.2.1",
   "engines": {
     "node": ">=24"
   },
@@ -33,6 +33,7 @@
     "@codemirror/language": "^6.11.0",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.0",
+    "@lezer/highlight": "^1.2.3",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.2.2",
     "react": "^19.2.8",
@@ -46,8 +47,11 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.4",
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.1",
     "eslint-config-prettier": "^10.1.8",
