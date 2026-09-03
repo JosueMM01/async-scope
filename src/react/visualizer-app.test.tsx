@@ -58,17 +58,16 @@ describe('VisualizerApp', () => {
     // jsdom viewport is mobile: the editor tab is active first.
     expect(screen.getAllByRole('textbox')).toHaveLength(1);
 
-    await user.click(screen.getByRole('tab', { name: 'Stack & APIs' }));
+    await user.click(screen.getByRole('tab', { name: 'Runtime' }));
     expect(screen.getByRole('region', { name: 'Call Stack' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: /browser and async apis/i })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: 'Queues' }));
     expect(screen.getByRole('region', { name: 'Microtask Queue' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Task Queue' })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('tab', { name: 'Console & Timeline' }));
-    expect(screen.getByRole('region', { name: /console output/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Timeline' }));
     expect(screen.getByRole('region', { name: /execution timeline/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /expand console/i }));
+    expect(screen.getByRole('region', { name: /console output/i })).toBeInTheDocument();
   });
 
   it('switches examples and updates the editor', async () => {
@@ -98,8 +97,22 @@ describe('VisualizerApp', () => {
   it('switches mobile tabs', async () => {
     const user = userEvent.setup();
     render(<VisualizerApp />);
-    await user.click(screen.getByRole('tab', { name: 'Queues' }));
-    expect(screen.getByRole('tabpanel', { name: 'Queues' })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Runtime' }));
+    expect(screen.getByRole('tabpanel', { name: 'Runtime' })).toBeInTheDocument();
+  });
+
+  it('expands, resizes and collapses the console with the keyboard', async () => {
+    const user = userEvent.setup();
+    render(<VisualizerApp />);
+
+    await user.click(screen.getByRole('button', { name: /expand console/i }));
+    const separator = screen.getByRole('separator', { name: /resize console/i });
+    separator.focus();
+    await user.keyboard('{ArrowUp}{ArrowDown}{Home}{End}');
+    expect(separator).toHaveAttribute('aria-valuenow', '320');
+
+    await user.click(screen.getByRole('button', { name: /collapse console/i }));
+    expect(screen.getByRole('button', { name: /expand console/i })).toBeInTheDocument();
   });
 
   it(
@@ -110,7 +123,7 @@ describe('VisualizerApp', () => {
       render(<VisualizerApp />);
       await user.selectOptions(screen.getByLabelText('Examples'), 'settimeout');
       await user.selectOptions(screen.getByLabelText('Speed'), '4');
-      await user.click(screen.getByRole('tab', { name: 'Console & Timeline' }));
+      await user.click(screen.getByRole('button', { name: /expand console/i }));
       const region = screen.getByRole('region', { name: /console output/i });
       await user.click(screen.getByRole('button', { name: /run/i }));
       await waitFor(
@@ -160,7 +173,7 @@ describe('VisualizerApp', () => {
     await user.selectOptions(screen.getByLabelText('Examples'), 'settimeout');
     await user.selectOptions(screen.getByLabelText('Speed'), '4');
     await user.click(screen.getByRole('button', { name: /run/i }));
-    await user.click(screen.getByRole('tab', { name: 'Console & Timeline' }));
+    await user.click(screen.getByRole('tab', { name: 'Timeline' }));
     const region = screen.getByRole('region', { name: /execution timeline/i });
     await waitFor(
       () => {

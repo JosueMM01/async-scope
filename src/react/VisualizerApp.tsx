@@ -4,12 +4,13 @@
  * Owns: editor source, recorder (worker) lifecycle, playback state machine and
  * the responsive layout (panels on desktop, tabs on small screens).
  */
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 // Deep imports keep the Babel pipeline out of the main chunk (worker-only).
 import { DEFAULT_EXAMPLE_ID, EXAMPLES, getExample } from '../engine/examples';
 import type { SourceLanguage, TraceEvent } from '../engine/types';
 import { CodeEditor } from './CodeEditor';
 import { Controls } from './Controls';
+import { ResizeHandle } from './ResizeHandle';
 import {
   CallStackPanel,
   ConsolePanel,
@@ -22,17 +23,48 @@ import {
 import { usePlayback } from './usePlayback';
 import { useRecorder } from './useRecorder';
 
-type MobileTab = 'editor' | 'runtime' | 'queues' | 'output';
+type MobileTab = 'editor' | 'runtime' | 'timeline';
 
 const MOBILE_TABS: Array<{ id: MobileTab; label: string }> = [
   { id: 'editor', label: 'Editor' },
-  { id: 'runtime', label: 'Stack & APIs' },
-  { id: 'queues', label: 'Queues' },
-  { id: 'output', label: 'Console & Timeline' },
+  { id: 'runtime', label: 'Runtime' },
+  { id: 'timeline', label: 'Timeline' },
 ];
 
 const STORAGE_KEY = 'asyncscope:source';
 const LANGUAGE_STORAGE_KEY = 'asyncscope:language';
+const EDITOR_SIZE_KEY = 'asyncscope:editor-percent';
+const CONSOLE_HEIGHT_KEY = 'asyncscope:console-height';
+const CONSOLE_OPEN_KEY = 'asyncscope:console-open';
+const EDITOR_MIN = 28;
+const EDITOR_MAX = 58;
+const CONSOLE_MIN = 112;
+const CONSOLE_MAX = 320;
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function loadStoredNumber(key: string, fallback: number, minimum: number, maximum: number): number {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const value = Number(window.localStorage.getItem(key));
+    return Number.isFinite(value) && value > 0 ? clamp(value, minimum, maximum) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function loadConsoleOpen(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    const stored = window.localStorage.getItem(CONSOLE_OPEN_KEY);
+    if (stored === 'true' || stored === 'false') return stored === 'true';
+    return window.matchMedia(DESKTOP_QUERY).matches;
+  } catch {
+    return true;
+  }
+}
 
 function loadInitialSource(): string {
   if (typeof window === 'undefined') return getExample(DEFAULT_EXAMPLE_ID).code;
@@ -56,7 +88,7 @@ function loadInitialLanguage(): SourceLanguage {
   return getExample(DEFAULT_EXAMPLE_ID).language;
 }
 
-const DESKTOP_QUERY = '(min-width: 1024px)';
+const DESKTOP_QUERY = '(min-width: 900px)';
 
 function subscribeDesktop(callback: () => void) {
   const mql = window.matchMedia(DESKTOP_QUERY);
@@ -76,6 +108,14 @@ function useIsDesktop(): boolean {
 export function VisualizerApp() {
   const [source, setSource] = useState<string>(loadInitialSource);
   const [language, setLanguage] = useState<SourceLanguage>(loadInitialLanguage);
+  const [editorPercent, setEditorPercent] = useState(() =>
+    loadStoredNumber(EDITOR_SIZE_KEY, 40, EDITOR_MIN, EDITOR_MAX),
+  );
+  const [consoleHeight, setConsoleHeight] = useState(() =>
+    loadStoredNumber(CONSOLE_HEIGHT_KEY, 176, CONSOLE_MIN, CONSOLE_MAX),
+  );
+  const [consoleOpen, setConsoleOpen] = useState(loadConsoleOpen);
+  const splitRef = useRef<HTMLDivElement>(null);
 
   const playback = usePlayback();
   const dispatch = playback.dispatch;
@@ -115,6 +155,16 @@ export function VisualizerApp() {
     }, 400);
     return () => clearTimeout(id);
   }, [language, source]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(EDITOR_SIZE_KEY, String(editorPercent));
+      window.localStorage.setItem(CONSOLE_HEIGHT_KEY, String(consoleHeight));
+      window.localStorage.setItem(CONSOLE_OPEN_KEY, String(consoleOpen));
+    } catch {
+      // Layout preferences are best-effort, like source persistence.
+    }
+  }, [consoleHeight, consoleOpen, editorPercent]);
 
   // Playback ticker: advance the cursor while playing.
   const { status, cursor, stepIntervalMs } = playback;
@@ -167,6 +217,16 @@ export function VisualizerApp() {
   const [mobileTab, setMobileTab] = useState<MobileTab>('editor');
   const isDesktop = useIsDesktop();
 
+  const resizeEditor = useCallback((delta: number) => {
+    const width = splitRef.current?.getBoundingClientRect().width ?? 0;
+    if (width <= 0) return;
+    setEditorPercent((current) => clamp(current + (delta / width) * 100, EDITOR_MIN, EDITOR_MAX));
+  }, []);
+
+  const resizeConsole = useCallback((delta: number) => {
+    setConsoleHeight((current) => clamp(current - delta, CONSOLE_MIN, CONSOLE_MAX));
+  }, []);
+
   const timelineSeek = useCallback(
     (entryIndex: number) => {
       if (!trace) return;
@@ -192,63 +252,73 @@ export function VisualizerApp() {
     <CodeEditor value={source} onChange={setSource} activeLine={activeLine} language={language} />
   );
 
+  const settings = (
+    <div className="as-settings flex min-w-0 items-center gap-1.5">
+      <label className="sr-only" htmlFor="as-example">
+        Example
+      </label>
+      <select
+        id="as-example"
+        aria-label="Examples"
+        title={getExample(exampleId).description}
+        className="as-select min-w-0 rounded-md border px-2 py-1 text-[12px]"
+        value={exampleId}
+        onChange={(event) => applyExample(event.target.value)}
+      >
+        {EXAMPLES.map((example) => (
+          <option key={example.id} value={example.id}>
+            {example.name}
+          </option>
+        ))}
+      </select>
+      <label className="sr-only" htmlFor="as-language">
+        Language
+      </label>
+      <select
+        id="as-language"
+        aria-label="Language"
+        className="as-select rounded-md border px-2 py-1 text-[12px]"
+        value={language}
+        onChange={(event) => setLanguage(event.target.value as SourceLanguage)}
+      >
+        <option value="javascript">JS</option>
+        <option value="typescript">TS</option>
+      </select>
+      <button
+        type="button"
+        className="as-btn as-reset-example rounded-md border px-2 py-1 text-[12px] font-semibold"
+        onClick={resetToExample}
+        disabled={source === getExample(exampleId).code}
+        aria-label="Reset editor to the selected example"
+        title="Reset editor to the selected example"
+      >
+        <span aria-hidden="true">↺</span>
+      </button>
+    </div>
+  );
+
+  const eventLoop = (
+    <EventLoopBadge
+      loop={current.loop}
+      stackEmpty={current.stack.length === 0}
+      complete={pbStatus === 'done'}
+    />
+  );
+
+  const timeline = (
+    <TimelinePanel
+      entries={current.timeline}
+      currentIndex={Math.max(0, current.timeline.length - 1)}
+      onSeekToEntry={timelineSeek}
+    />
+  );
+
   return (
-    <div className="flex min-w-0 flex-col gap-2">
-      <div className="flex flex-col gap-2">
-        <Controls playback={playback} onRun={run} onStop={stop} />
-        <div className="as-example-row flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2">
-          <label
-            htmlFor="as-example"
-            className="text-[11px] font-semibold tracking-wider uppercase opacity-80"
-          >
-            Examples
-          </label>
-          <select
-            id="as-example"
-            className="as-select min-w-0 flex-1 rounded-md border px-2 py-1 text-[12.5px] sm:max-w-xs"
-            value={exampleId}
-            onChange={(event) => applyExample(event.target.value)}
-          >
-            {EXAMPLES.map((example) => (
-              <option key={example.id} value={example.id}>
-                {example.name}
-              </option>
-            ))}
-          </select>
-          <label
-            htmlFor="as-language"
-            className="text-[11px] font-semibold tracking-wider uppercase opacity-80"
-          >
-            Language
-          </label>
-          <select
-            id="as-language"
-            aria-label="Language"
-            className="as-select rounded-md border px-2 py-1 text-[12.5px]"
-            value={language}
-            onChange={(event) => setLanguage(event.target.value as SourceLanguage)}
-          >
-            <option value="javascript">JavaScript</option>
-            <option value="typescript">TypeScript</option>
-          </select>
-          <span className="hidden truncate text-[12px] opacity-70 md:inline">
-            {getExample(exampleId).description}
-          </span>
-          <button
-            type="button"
-            className="as-btn ml-auto shrink-0 rounded-md border px-2.5 py-1.5 text-[12px] font-semibold"
-            onClick={resetToExample}
-            disabled={source === getExample(exampleId).code}
-            aria-label="Reset editor to the selected example"
-            title="Reset editor to the selected example"
-          >
-            ↺ Reset code
-          </button>
-        </div>
-      </div>
+    <div className="as-workbench-shell flex min-h-0 min-w-0 flex-1 flex-col">
+      <Controls playback={playback} onRun={run} onStop={stop} settings={settings} />
 
       {compileError && (
-        <div className="as-error-banner rounded-lg border px-3 py-2" role="alert">
+        <div className="as-error-banner shrink-0 border px-3 py-1.5" role="alert">
           <p className="font-semibold">
             {compileError.phase === 'syntax'
               ? 'Syntax error'
@@ -263,109 +333,150 @@ export function VisualizerApp() {
         </div>
       )}
 
-      {/* Small screens: tabs instead of shrinking every panel at once.
-          Rendered only when not desktop so the CodeMirror instance is
-          mounted exactly once (either here or in the workbench). */}
-      {!isDesktop && (
-        <div>
-          <div
-            className="flex flex-wrap gap-1.5 pb-1"
-            role="tablist"
-            aria-label="Visualizer sections"
-          >
-            {MOBILE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={mobileTab === tab.id}
-                type="button"
-                onClick={() => setMobileTab(tab.id)}
-                className={`as-tab rounded-md border px-3 py-1.5 text-[12px] font-semibold ${
-                  mobileTab === tab.id ? 'as-tab-active' : 'as-tab-idle'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          {mobileTab === 'editor' && (
+      <div className="as-workspace-main min-h-0 flex-1">
+        {!isDesktop && (
+          <div className="as-mobile-workspace flex h-full min-h-0 flex-col">
             <div
-              role="tabpanel"
-              aria-label="Editor"
-              className="as-editor-frame h-[48vh] min-h-[280px]"
+              className="as-mobile-tabs flex shrink-0 gap-1 border-b px-2 py-1"
+              role="tablist"
+              aria-label="Visualizer sections"
             >
-              {editor}
+              {MOBILE_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  id={`as-tab-${tab.id}`}
+                  aria-controls={`as-panel-${tab.id}`}
+                  aria-selected={mobileTab === tab.id}
+                  type="button"
+                  onClick={() => setMobileTab(tab.id)}
+                  className={`as-tab rounded-md border px-3 py-1.5 text-[12px] font-semibold ${
+                    mobileTab === tab.id ? 'as-tab-active' : 'as-tab-idle'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-          )}
-          {mobileTab === 'runtime' && (
-            <div role="tabpanel" aria-label="Stack and APIs" className="flex flex-col gap-2">
-              <EventLoopBadge loop={current.loop} stackEmpty={current.stack.length === 0} />
-              <div className="max-h-[38vh] min-h-[170px]">
+            {mobileTab === 'editor' && (
+              <div
+                id="as-panel-editor"
+                role="tabpanel"
+                aria-labelledby="as-tab-editor"
+                aria-label="Editor"
+                className="as-editor-frame min-h-0 flex-1"
+              >
+                {editor}
+              </div>
+            )}
+            {mobileTab === 'runtime' && (
+              <div
+                id="as-panel-runtime"
+                role="tabpanel"
+                aria-labelledby="as-tab-runtime"
+                className="as-mobile-stage min-h-0 flex-1 overflow-y-auto p-1.5"
+              >
+                {eventLoop}
+                <div className="as-mobile-runtime-grid mt-1.5 grid gap-1.5">
+                  <CallStackPanel frames={current.stack} />
+                  <WebApisPanel timers={current.apis} />
+                  <MicrotaskQueuePanel items={current.microtasks} />
+                  <TaskQueuePanel items={current.tasks} />
+                </div>
+              </div>
+            )}
+            {mobileTab === 'timeline' && (
+              <div
+                id="as-panel-timeline"
+                role="tabpanel"
+                aria-labelledby="as-tab-timeline"
+                className="min-h-0 flex-1 p-1.5"
+              >
+                {timeline}
+              </div>
+            )}
+          </div>
+        )}
+
+        {isDesktop && (
+          <div
+            ref={splitRef}
+            className="as-desktop-split grid h-full min-h-0"
+            style={{ gridTemplateColumns: `${editorPercent}% 10px minmax(0, 1fr)` }}
+          >
+            <div className="as-editor-frame min-h-0 min-w-0">{editor}</div>
+            <ResizeHandle
+              orientation="vertical"
+              label="Resize code editor and runtime"
+              valueNow={editorPercent}
+              valueMin={EDITOR_MIN}
+              valueMax={EDITOR_MAX}
+              onPointerDelta={resizeEditor}
+              onDecrease={() =>
+                setEditorPercent((value) => clamp(value - 2, EDITOR_MIN, EDITOR_MAX))
+              }
+              onIncrease={() =>
+                setEditorPercent((value) => clamp(value + 2, EDITOR_MIN, EDITOR_MAX))
+              }
+              onMinimum={() => setEditorPercent(EDITOR_MIN)}
+              onMaximum={() => setEditorPercent(EDITOR_MAX)}
+            />
+            <div className="as-runtime-grid grid min-h-0 min-w-0 gap-1.5">
+              {eventLoop}
+              <div className="as-runtime-panels grid min-h-0 grid-cols-2 gap-1.5">
                 <CallStackPanel frames={current.stack} />
-              </div>
-              <div className="max-h-[38vh] min-h-[170px]">
                 <WebApisPanel timers={current.apis} />
-              </div>
-            </div>
-          )}
-          {mobileTab === 'queues' && (
-            <div role="tabpanel" aria-label="Queues" className="flex flex-col gap-2">
-              <div className="max-h-[40vh] min-h-[170px]">
                 <MicrotaskQueuePanel items={current.microtasks} />
-              </div>
-              <div className="max-h-[40vh] min-h-[170px]">
                 <TaskQueuePanel items={current.tasks} />
               </div>
+              <div className="min-h-0">{timeline}</div>
             </div>
-          )}
-          {mobileTab === 'output' && (
-            <div role="tabpanel" aria-label="Console and timeline" className="flex flex-col gap-2">
-              <div className="h-[28vh] min-h-[150px]">
-                <ConsolePanel lines={current.console} />
-              </div>
-              <div className="h-[34vh] min-h-[170px]">
-                <TimelinePanel
-                  entries={current.timeline}
-                  currentIndex={Math.max(0, current.timeline.length - 1)}
-                  onSeekToEntry={timelineSeek}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
-      {/* Desktop: panels workbench. */}
-      {isDesktop && (
-        <div className="as-workbench min-h-[560px] gap-2 grid">
-          <div className="as-cell-editor as-editor-frame min-h-0">{editor}</div>
-          <div className="as-cell-side flex min-h-0 flex-col gap-2">
-            <EventLoopBadge loop={current.loop} stackEmpty={current.stack.length === 0} />
-            <div className="min-h-[120px] flex-1">
-              <CallStackPanel frames={current.stack} />
-            </div>
-            <div className="min-h-[110px] flex-1">
-              <WebApisPanel timers={current.apis} />
-            </div>
-            <div className="min-h-[110px] flex-1">
-              <MicrotaskQueuePanel items={current.microtasks} />
-            </div>
-            <div className="min-h-[110px] flex-1">
-              <TaskQueuePanel items={current.tasks} />
-            </div>
-          </div>
-          <div className="as-cell-timeline min-h-0">
-            <TimelinePanel
-              entries={current.timeline}
-              currentIndex={Math.max(0, current.timeline.length - 1)}
-              onSeekToEntry={timelineSeek}
-            />
-          </div>
-          <div className="as-cell-console min-h-0">
-            <ConsolePanel lines={current.console} />
-          </div>
-        </div>
+      {consoleOpen && (
+        <ResizeHandle
+          orientation="horizontal"
+          label="Resize console"
+          valueNow={consoleHeight}
+          valueMin={CONSOLE_MIN}
+          valueMax={CONSOLE_MAX}
+          onPointerDelta={resizeConsole}
+          onDecrease={() =>
+            setConsoleHeight((value) => clamp(value - 16, CONSOLE_MIN, CONSOLE_MAX))
+          }
+          onIncrease={() =>
+            setConsoleHeight((value) => clamp(value + 16, CONSOLE_MIN, CONSOLE_MAX))
+          }
+          onMinimum={() => setConsoleHeight(CONSOLE_MIN)}
+          onMaximum={() => setConsoleHeight(CONSOLE_MAX)}
+        />
       )}
+      <div
+        className="as-console-drawer min-h-0 shrink-0"
+        style={{ height: consoleOpen ? consoleHeight : 34 }}
+      >
+        {consoleOpen ? (
+          <ConsolePanel lines={current.console} onCollapse={() => setConsoleOpen(false)} />
+        ) : (
+          <button
+            type="button"
+            className="as-console-collapsed flex h-full w-full items-center gap-2 border px-3 text-left text-[11px] font-semibold tracking-wider uppercase"
+            onClick={() => setConsoleOpen(true)}
+            aria-label="Expand console"
+            aria-expanded="false"
+          >
+            <span>Console</span>
+            <span className="as-badge rounded-full px-2 py-0.5 text-[10px] tabular-nums">
+              {current.console.length}
+            </span>
+            <span className="ml-auto" aria-hidden="true">
+              ▲
+            </span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }
