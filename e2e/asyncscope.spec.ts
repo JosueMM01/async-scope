@@ -13,6 +13,9 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => {
     window.localStorage.removeItem('asyncscope:source');
     window.localStorage.removeItem('asyncscope:language');
+    window.localStorage.removeItem('asyncscope:editor-percent');
+    window.localStorage.removeItem('asyncscope:console-height');
+    window.localStorage.removeItem('asyncscope:console-open');
   });
   await page.reload();
 });

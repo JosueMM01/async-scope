@@ -21,12 +21,14 @@ export function PanelShell({
   count,
   children,
   ariaLabel,
+  headerAction,
 }: {
   title: string;
   accent: 'cyan' | 'purple' | 'orange' | 'green' | 'yellow' | 'muted';
   count?: number;
   children: React.ReactNode;
   ariaLabel?: string;
+  headerAction?: React.ReactNode;
 }) {
   const accentClass = {
     cyan: 'as-accent-cyan',
@@ -43,11 +45,14 @@ export function PanelShell({
     >
       <header className="as-panel-header flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
         <h3 className="text-[11px] font-semibold tracking-wider uppercase">{title}</h3>
-        {typeof count === 'number' && (
-          <span className="as-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
-            {count}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {typeof count === 'number' && (
+            <span className="as-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
+              {count}
+            </span>
+          )}
+          {headerAction}
+        </div>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">{children}</div>
     </section>
@@ -200,13 +205,28 @@ const LOOP_ICON: Record<LoopAction, string> = {
   'advance-time': '⏳',
 };
 
-export function EventLoopBadge({ loop, stackEmpty }: { loop: LoopAction; stackEmpty: boolean }) {
+export function EventLoopBadge({
+  loop,
+  stackEmpty,
+  complete = false,
+}: {
+  loop: LoopAction;
+  stackEmpty: boolean;
+  complete?: boolean;
+}) {
   const active = loop !== 'idle';
+  const description = complete
+    ? 'execution complete'
+    : active
+      ? LOOP_LABEL[loop]
+      : stackEmpty
+        ? 'waiting for work'
+        : 'executing synchronous code';
   return (
     <div
       className={`as-loop-badge flex items-center gap-3 rounded-lg border px-3 py-2 ${active ? 'as-loop-active' : 'as-loop-idle'}`}
       role="status"
-      aria-label={`Event Loop: ${LOOP_LABEL[loop]}`}
+      aria-label={`Event Loop: ${description}`}
       data-active={active ? 'true' : 'false'}
     >
       <span className="as-loop-icon font-mono text-sm font-bold" aria-hidden="true">
@@ -214,9 +234,7 @@ export function EventLoopBadge({ loop, stackEmpty }: { loop: LoopAction; stackEm
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold tracking-wider uppercase">Event Loop</p>
-        <p className="truncate text-[11.5px] opacity-90">
-          {active ? LOOP_LABEL[loop] : 'waiting for work'}
-        </p>
+        <p className="truncate text-[11.5px] opacity-90">{description}</p>
       </div>
       <span
         className="as-loop-stack rounded px-1.5 py-0.5 font-mono text-[10px]"
@@ -242,7 +260,13 @@ const CONSOLE_LEVEL_ICON: Record<ConsoleLine['level'], string> = {
   error: '✖',
 };
 
-export function ConsolePanel({ lines }: { lines: ConsoleLine[] }) {
+export function ConsolePanel({
+  lines,
+  onCollapse,
+}: {
+  lines: ConsoleLine[];
+  onCollapse?: () => void;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = scrollRef.current;
@@ -250,7 +274,25 @@ export function ConsolePanel({ lines }: { lines: ConsoleLine[] }) {
   }, [lines]);
 
   return (
-    <PanelShell title="Console" accent="muted" count={lines.length} ariaLabel="Console output">
+    <PanelShell
+      title="Console"
+      accent="muted"
+      count={lines.length}
+      ariaLabel="Console output"
+      headerAction={
+        onCollapse ? (
+          <button
+            type="button"
+            className="as-dock-toggle"
+            onClick={onCollapse}
+            aria-label="Collapse console"
+            aria-expanded="true"
+          >
+            <span aria-hidden="true">▼</span>
+          </button>
+        ) : undefined
+      }
+    >
       <div ref={scrollRef} className="h-full min-h-0 overflow-y-auto" aria-live="polite">
         {lines.length === 0 ? (
           <EmptyHint>console output will appear here</EmptyHint>
@@ -348,6 +390,6 @@ export function TimelinePanel({
 
 function EmptyHint({ children }: { children: React.ReactNode }) {
   return (
-    <p className="as-empty-hint px-2 py-6 text-center text-[12px] italic opacity-70">{children}</p>
+    <p className="as-empty-hint px-2 py-3 text-center text-[12px] italic opacity-70">{children}</p>
   );
 }

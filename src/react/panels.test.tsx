@@ -99,7 +99,9 @@ describe('EventLoopBadge', () => {
 
   it('shows waiting state when idle', () => {
     render(<EventLoopBadge loop="idle" stackEmpty={false} />);
-    expect(screen.getByRole('status', { name: /event loop: idle/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: /event loop: executing synchronous code/i }),
+    ).toBeInTheDocument();
   });
 });
 
