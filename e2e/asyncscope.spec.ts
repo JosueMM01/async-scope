@@ -6,7 +6,31 @@
 import { expect, test } from '@playwright/test';
 import { consoleLines, runAndWait, selectExample, setEditorCode } from './helpers';
 
-test.beforeEach(async ({ page }) => {
+test('stored preferences hydrate without browser errors', async ({ page }) => {
+  const browserErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') browserErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => browserErrors.push(error.message));
+  await page.addInitScript(() => {
+    localStorage.setItem('asyncscope:source', 'console.log("persisted");');
+    localStorage.setItem('asyncscope:language', 'javascript');
+    localStorage.setItem('asyncscope:editor-percent', '55');
+    localStorage.setItem('asyncscope:console-height', '280');
+    localStorage.setItem('asyncscope:console-open', 'false');
+  });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'AsyncScope' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Expand console' })).toBeVisible();
+  await expect(
+    page.getByRole('separator', { name: 'Resize code editor and runtime' }),
+  ).toHaveAttribute('aria-valuenow', '55');
+  await expect(page.getByRole('textbox')).toContainText('console.log("persisted");');
+  expect(browserErrors).toEqual([]);
+});
+
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.title === 'stored preferences hydrate without browser errors') return;
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'AsyncScope' })).toBeVisible();
   // Start from a known editor state for every test.

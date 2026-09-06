@@ -105,16 +105,34 @@ function useIsDesktop(): boolean {
   );
 }
 
+const subscribeHydration = () => () => {};
+
 export function VisualizerApp() {
-  const [source, setSource] = useState<string>(loadInitialSource);
-  const [language, setLanguage] = useState<SourceLanguage>(loadInitialLanguage);
+  const hydrated = useSyncExternalStore(
+    subscribeHydration,
+    () => true,
+    () => false,
+  );
+  return <VisualizerWorkbench key={hydrated ? 'stored' : 'server'} loadStored={hydrated} />;
+}
+
+function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
+  const initialExample = getExample(DEFAULT_EXAMPLE_ID);
+  // Astro and the first client render share defaults. Once hydration completes,
+  // the workbench remounts with browser-only preferences and may persist changes.
+  const [source, setSource] = useState<string>(() =>
+    loadStored ? loadInitialSource() : initialExample.code,
+  );
+  const [language, setLanguage] = useState<SourceLanguage>(() =>
+    loadStored ? loadInitialLanguage() : initialExample.language,
+  );
   const [editorPercent, setEditorPercent] = useState(() =>
-    loadStoredNumber(EDITOR_SIZE_KEY, 40, EDITOR_MIN, EDITOR_MAX),
+    loadStored ? loadStoredNumber(EDITOR_SIZE_KEY, 40, EDITOR_MIN, EDITOR_MAX) : 40,
   );
   const [consoleHeight, setConsoleHeight] = useState(() =>
-    loadStoredNumber(CONSOLE_HEIGHT_KEY, 176, CONSOLE_MIN, CONSOLE_MAX),
+    loadStored ? loadStoredNumber(CONSOLE_HEIGHT_KEY, 176, CONSOLE_MIN, CONSOLE_MAX) : 176,
   );
-  const [consoleOpen, setConsoleOpen] = useState(loadConsoleOpen);
+  const [consoleOpen, setConsoleOpen] = useState(() => (loadStored ? loadConsoleOpen() : true));
   const splitRef = useRef<HTMLDivElement>(null);
 
   const playback = usePlayback();
@@ -145,6 +163,7 @@ export function VisualizerApp() {
 
   // Persist the editor content (debounced) so a reload keeps the user's code.
   useEffect(() => {
+    if (!loadStored) return;
     const id = setTimeout(() => {
       try {
         window.localStorage.setItem(STORAGE_KEY, source);
@@ -154,9 +173,10 @@ export function VisualizerApp() {
       }
     }, 400);
     return () => clearTimeout(id);
-  }, [language, source]);
+  }, [language, loadStored, source]);
 
   useEffect(() => {
+    if (!loadStored) return;
     try {
       window.localStorage.setItem(EDITOR_SIZE_KEY, String(editorPercent));
       window.localStorage.setItem(CONSOLE_HEIGHT_KEY, String(consoleHeight));
@@ -164,7 +184,7 @@ export function VisualizerApp() {
     } catch {
       // Layout preferences are best-effort, like source persistence.
     }
-  }, [consoleHeight, consoleOpen, editorPercent]);
+  }, [consoleHeight, consoleOpen, editorPercent, loadStored]);
 
   // Playback ticker: advance the cursor while playing.
   const { status, cursor, stepIntervalMs } = playback;

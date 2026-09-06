@@ -5,6 +5,7 @@
  * All panels are pure functions of VisualizationState — no engine knowledge.
  */
 import { useEffect, useRef, useState } from 'react';
+import { VirtualRows } from './VirtualRows';
 import type {
   ApiTimer,
   ConsoleLine,
@@ -299,10 +300,11 @@ export function ConsolePanel({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [followLatest, setFollowLatest] = useState(true);
+  const [virtualized, setVirtualized] = useState(true);
   useEffect(() => {
     const el = scrollRef.current;
-    if (el && followLatest) el.scrollTop = el.scrollHeight;
-  }, [followLatest, lines]);
+    if (el && followLatest && (!virtualized || lines.length <= 100)) el.scrollTop = el.scrollHeight;
+  }, [followLatest, lines, virtualized]);
 
   return (
     <PanelShell
@@ -313,6 +315,15 @@ export function ConsolePanel({
       headerAction={
         <>
           <FollowToggle active={followLatest} onActivate={() => setFollowLatest(true)} />
+          {lines.length > 100 && (
+            <button
+              type="button"
+              className="as-follow-toggle"
+              onClick={() => setVirtualized(!virtualized)}
+            >
+              {virtualized ? 'Show all rows' : 'Window rows'}
+            </button>
+          )}
           {onCollapse && (
             <button
               type="button"
@@ -333,19 +344,27 @@ export function ConsolePanel({
         {lines.length === 0 ? (
           <EmptyHint>console output will appear here</EmptyHint>
         ) : (
-          <ol aria-label="Console output lines">
-            {lines.map((line) => (
-              <li
-                key={line.id}
-                className={`as-console-line ${CONSOLE_LEVEL_CLASS[line.level]} flex items-start gap-2 rounded px-2 py-1 font-mono text-[12.5px] whitespace-pre-wrap break-words`}
-              >
-                <span className="as-console-icon shrink-0 opacity-80" aria-hidden="true">
-                  {CONSOLE_LEVEL_ICON[line.level]}
-                </span>
-                <span className="as-console-text min-w-0">{line.text}</span>
-              </li>
-            ))}
-          </ol>
+          <VirtualRows
+            count={lines.length}
+            scrollRef={scrollRef}
+            followIndex={followLatest ? lines.length - 1 : null}
+            label="Console output lines"
+            enabled={virtualized}
+            renderRow={(index) => {
+              const line = lines[index]!;
+              return (
+                <li
+                  key={line.id}
+                  className={`as-console-line ${CONSOLE_LEVEL_CLASS[line.level]} flex items-start gap-2 rounded px-2 py-1 font-mono text-[12.5px] whitespace-pre-wrap break-words`}
+                >
+                  <span className="as-console-icon shrink-0 opacity-80" aria-hidden="true">
+                    {CONSOLE_LEVEL_ICON[line.level]}
+                  </span>
+                  <span className="as-console-text min-w-0">{line.text}</span>
+                </li>
+              );
+            }}
+          />
         )}
       </div>
     </PanelShell>
@@ -377,9 +396,11 @@ export function TimelinePanel({
   const activeRef = useRef<HTMLLIElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [followActive, setFollowActive] = useState(true);
+  const [virtualized, setVirtualized] = useState(true);
   useEffect(() => {
-    if (followActive) activeRef.current?.scrollIntoView({ block: 'nearest' });
-  }, [currentIndex, followActive]);
+    if (followActive && (!virtualized || entries.length <= 100))
+      activeRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [currentIndex, followActive, virtualized, entries.length]);
 
   return (
     <PanelShell
@@ -387,15 +408,34 @@ export function TimelinePanel({
       accent="yellow"
       count={entries.length}
       ariaLabel="Execution timeline"
-      headerAction={<FollowToggle active={followActive} onActivate={() => setFollowActive(true)} />}
+      headerAction={
+        <>
+          <FollowToggle active={followActive} onActivate={() => setFollowActive(true)} />
+          {entries.length > 100 && (
+            <button
+              type="button"
+              className="as-follow-toggle"
+              onClick={() => setVirtualized(!virtualized)}
+            >
+              {virtualized ? 'Show all rows' : 'Window rows'}
+            </button>
+          )}
+        </>
+      }
       contentRef={scrollRef}
       onUserScroll={() => setFollowActive(false)}
     >
       {entries.length === 0 ? (
         <EmptyHint>run the code to record a timeline</EmptyHint>
       ) : (
-        <ol className="flex flex-col" aria-label="Execution timeline events">
-          {entries.map((entry, index) => {
+        <VirtualRows
+          count={entries.length}
+          scrollRef={scrollRef}
+          followIndex={followActive ? currentIndex : null}
+          label="Execution timeline events"
+          enabled={virtualized}
+          renderRow={(index) => {
+            const entry = entries[index]!;
             const isPast = index <= currentIndex;
             const isActive = index === currentIndex;
             return (
@@ -422,8 +462,8 @@ export function TimelinePanel({
                 </button>
               </li>
             );
-          })}
-        </ol>
+          }}
+        />
       )}
     </PanelShell>
   );

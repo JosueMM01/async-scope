@@ -11,6 +11,42 @@ const desktopViewports = [
   { width: 960, height: 600 },
 ];
 
+test('long traces render bounded rows, allow full access and reconstruct restart', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await setEditorCode(
+    page,
+    'for (let i = 0; i < 250; i++) console.log("row", i, "detail\\n".repeat(i % 4));',
+  );
+  await page.getByRole('button', { name: 'Run (Ctrl+Enter)' }).click();
+  const slider = page.getByRole('slider', { name: 'Playback position' });
+  await expect(slider).toBeEnabled();
+  await slider.press('End');
+  const output = page.getByRole('region', { name: 'Console output' });
+  await expect(output.locator('.as-console-line').last()).toContainText('row 249');
+  expect(await output.locator('.as-console-line').count()).toBeLessThan(100);
+  const timeline = page.getByRole('region', { name: 'Execution timeline' });
+  expect(await timeline.locator('.as-tl-item').count()).toBeLessThan(100);
+  await output.locator('.as-panel-scroll').hover();
+  await page.mouse.wheel(0, -100000);
+  await expect(output.getByRole('button', { name: 'Follow', exact: true })).toBeVisible();
+  await expect(output.locator('.as-console-line').first()).toContainText('row 0');
+  await output.getByRole('button', { name: 'Show all rows' }).click();
+  await expect(output.locator('.as-console-line')).toHaveCount(250);
+  await expect(output.locator('.as-console-line').first()).toContainText('row 0');
+  await page.getByRole('button', { name: '↺ Restart' }).click();
+  await expect(output.locator('.as-console-line')).toHaveCount(0);
+  await expect(page.getByRole('status', { name: /event loop/i })).toHaveAttribute(
+    'data-loop-state',
+    'waiting',
+  );
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1))
+    .toBe(true);
+});
+
 for (const viewport of desktopViewports) {
   test(`desktop workbench fits ${viewport.width}x${viewport.height} without page scroll`, async ({
     page,
