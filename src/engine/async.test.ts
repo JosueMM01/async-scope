@@ -82,7 +82,7 @@ describe('promise basics', () => {
 
   it('detects chaining cycles', () => {
     const events = run(
-      `const p = Promise.resolve().then(() => p);\np.catch((e) => console.log("cycle:", e.constructor.name));`,
+      `const p = Promise.resolve().then(() => p);\np.catch((e) => console.log("cycle:", e.name));`,
     );
     expect(consoleText(events)).toEqual(['cycle: TypeError']);
   });

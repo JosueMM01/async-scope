@@ -99,12 +99,26 @@ export class VirtualScheduler implements PromiseHost {
   }
 
   /**
-   * Pushes an event without the cap check. Reserved for terminal events
-   * (the final error and execution:end) so a trace at its cap still ends
-   * coherently.
+   * Emits a terminal event while preserving a strict total trace bound.
+   * One slot is reserved for the first terminal error and one for
+   * execution:end. Stack-unwind details are best-effort once the normal
+   * event budget is exhausted.
    */
   pushTerminalEvent(payload: EventPayload): void {
-    this.events.push({ ...payload, line: this.line } as TraceEvent);
+    const event = { ...payload, line: this.line } as TraceEvent;
+    if (payload.type === 'execution:end') {
+      if (this.events.length < this.limits.maxEvents + 2) {
+        this.events.push(event);
+      } else {
+        this.events[this.events.length - 1] = event;
+      }
+      return;
+    }
+    if (payload.type === 'error') {
+      if (this.events.length < this.limits.maxEvents + 1) this.events.push(event);
+      return;
+    }
+    if (this.events.length < this.limits.maxEvents) this.events.push(event);
   }
 
   /** Budget guard invoked per statement, loop iteration and function entry. */
@@ -201,6 +215,7 @@ export class VirtualScheduler implements PromiseHost {
   }
 
   private flushUnhandledRejections(): void {
+    if (this.unhandled.length > 0) this.hadError = true;
     while (this.unhandled.length > 0) {
       const entry = this.unhandled.shift()!;
       this.pushTerminalEvent({

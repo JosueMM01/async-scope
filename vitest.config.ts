@@ -7,7 +7,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],
-      include: ['src/engine/**/*.ts', 'src/react/**/*.{ts,tsx}'],
+      include: ['src/engine/**/*.ts', 'src/react/**/*.{ts,tsx}', 'src/worker/protocol.ts'],
       exclude: ['**/*.test.{ts,tsx}', 'src/engine/test-utils.ts', 'src/react/test/**'],
       thresholds: {
         statements: 80,
@@ -21,7 +21,7 @@ export default defineConfig({
         test: {
           name: 'engine',
           environment: 'node',
-          include: ['src/engine/**/*.test.ts'],
+          include: ['src/engine/**/*.test.ts', 'src/worker/**/*.test.ts'],
         },
       },
       {
