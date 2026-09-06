@@ -57,7 +57,27 @@ describe('useRecorder', () => {
     act(() => worker.onmessage?.({ data: { type: 'trace', id: 1, events } } as MessageEvent));
 
     expect(handlers.onTrace).toHaveBeenCalledWith(events);
+    expect(worker.terminate).toHaveBeenCalledOnce();
     expect(result.current.isRunning()).toBe(false);
+  });
+
+  it('rejects malformed worker responses and terminates the sandbox', () => {
+    const handlers = callbacks();
+    const { result } = renderHook(() => useRecorder(handlers));
+    act(() => result.current.run('console.log(1)', 'javascript'));
+    const worker = FakeWorker.instances[0]!;
+
+    act(() =>
+      worker.onmessage?.({
+        data: { type: 'trace', id: 1, events: [{ type: 'unknown' }] },
+      } as MessageEvent),
+    );
+
+    expect(worker.terminate).toHaveBeenCalledOnce();
+    expect(handlers.onTrace).not.toHaveBeenCalled();
+    expect(handlers.onCompileError).toHaveBeenCalledWith(
+      expect.objectContaining({ phase: 'internal' }),
+    );
   });
 
   it('drops stale responses and terminates the previous worker', () => {
@@ -71,6 +91,26 @@ describe('useRecorder', () => {
 
     act(() => first.onmessage?.({ data: { type: 'trace', id: 1, events: [] } } as MessageEvent));
     expect(handlers.onTrace).not.toHaveBeenCalled();
+
+    act(() => first.onerror?.());
+    expect(handlers.onTimeout).not.toHaveBeenCalled();
+    expect(result.current.isRunning()).toBe(true);
+  });
+
+  it('cleans up an accepted run before invoking reentrant callbacks', () => {
+    const handlers = callbacks();
+    const { result } = renderHook(() => useRecorder(handlers));
+    vi.mocked(handlers.onTrace).mockImplementation(() => {
+      result.current.run('console.log("replacement")', 'javascript');
+    });
+
+    act(() => result.current.run('console.log("first")', 'javascript'));
+    const first = FakeWorker.instances[0]!;
+    act(() => first.onmessage?.({ data: { type: 'trace', id: 1, events: [] } } as MessageEvent));
+
+    expect(first.terminate).toHaveBeenCalledOnce();
+    expect(FakeWorker.instances).toHaveLength(2);
+    expect(result.current.isRunning()).toBe(true);
   });
 
   it('terminates a hung worker when the watchdog expires', () => {

@@ -4,7 +4,7 @@
  *
  * All panels are pure functions of VisualizationState — no engine knowledge.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   ApiTimer,
   ConsoleLine,
@@ -22,6 +22,8 @@ export function PanelShell({
   children,
   ariaLabel,
   headerAction,
+  contentRef,
+  onUserScroll,
 }: {
   title: string;
   accent: 'cyan' | 'purple' | 'orange' | 'green' | 'yellow' | 'muted';
@@ -29,6 +31,8 @@ export function PanelShell({
   children: React.ReactNode;
   ariaLabel?: string;
   headerAction?: React.ReactNode;
+  contentRef?: React.Ref<HTMLDivElement>;
+  onUserScroll?: () => void;
 }) {
   const accentClass = {
     cyan: 'as-accent-cyan',
@@ -54,7 +58,20 @@ export function PanelShell({
           {headerAction}
         </div>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">{children}</div>
+      <div
+        ref={contentRef}
+        className="as-panel-scroll min-h-0 flex-1 overflow-y-auto px-2 pb-2"
+        onWheelCapture={onUserScroll}
+        onTouchStartCapture={onUserScroll}
+        onPointerDownCapture={onUserScroll}
+        onKeyDownCapture={(event) => {
+          if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) {
+            onUserScroll?.();
+          }
+        }}
+      >
+        {children}
+      </div>
     </section>
   );
 }
@@ -194,25 +211,20 @@ export function TaskQueuePanel({ items }: { items: TaskItem[] }) {
 const LOOP_LABEL: Record<LoopAction, string> = {
   idle: 'idle',
   'drain-microtasks': 'draining microtasks',
-  'run-task': 'moving task to the stack',
+  'run-task': 'selecting next task',
   'advance-time': 'waiting for timers',
-};
-
-const LOOP_ICON: Record<LoopAction, string> = {
-  idle: '∅',
-  'drain-microtasks': '»»',
-  'run-task': '→',
-  'advance-time': '⏳',
 };
 
 export function EventLoopBadge({
   loop,
   stackEmpty,
   complete = false,
+  paused = false,
 }: {
   loop: LoopAction;
   stackEmpty: boolean;
   complete?: boolean;
+  paused?: boolean;
 }) {
   const active = loop !== 'idle';
   const description = complete
@@ -222,15 +234,33 @@ export function EventLoopBadge({
       : stackEmpty
         ? 'waiting for work'
         : 'executing synchronous code';
+  const visualState = complete
+    ? 'complete'
+    : loop === 'drain-microtasks'
+      ? 'microtasks'
+      : loop === 'run-task'
+        ? 'task'
+        : loop === 'advance-time'
+          ? 'timers'
+          : stackEmpty
+            ? 'waiting'
+            : 'synchronous';
   return (
     <div
       className={`as-loop-badge flex items-center gap-3 rounded-lg border px-3 py-2 ${active ? 'as-loop-active' : 'as-loop-idle'}`}
       role="status"
       aria-label={`Event Loop: ${description}`}
       data-active={active ? 'true' : 'false'}
+      data-loop-state={visualState}
+      data-paused={paused ? 'true' : 'false'}
     >
-      <span className="as-loop-icon font-mono text-sm font-bold" aria-hidden="true">
-        {LOOP_ICON[loop]}
+      <span className="as-loop-icon" aria-hidden="true">
+        <svg className="as-loop-mark" viewBox="0 0 32 32" focusable="false">
+          <path d="M25.8 11.3A11 11 0 0 0 7.1 8.1" />
+          <path d="m7.3 3.8-.2 4.3 4.3.2" />
+          <path d="M6.2 20.7a11 11 0 0 0 18.7 3.2" />
+          <path d="m24.7 28.2.2-4.3-4.3-.2" />
+        </svg>
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold tracking-wider uppercase">Event Loop</p>
@@ -268,10 +298,11 @@ export function ConsolePanel({
   onCollapse?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [followLatest, setFollowLatest] = useState(true);
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [lines]);
+    if (el && followLatest) el.scrollTop = el.scrollHeight;
+  }, [followLatest, lines]);
 
   return (
     <PanelShell
@@ -280,20 +311,25 @@ export function ConsolePanel({
       count={lines.length}
       ariaLabel="Console output"
       headerAction={
-        onCollapse ? (
-          <button
-            type="button"
-            className="as-dock-toggle"
-            onClick={onCollapse}
-            aria-label="Collapse console"
-            aria-expanded="true"
-          >
-            <span aria-hidden="true">▼</span>
-          </button>
-        ) : undefined
+        <>
+          <FollowToggle active={followLatest} onActivate={() => setFollowLatest(true)} />
+          {onCollapse && (
+            <button
+              type="button"
+              className="as-dock-toggle"
+              onClick={onCollapse}
+              aria-label="Collapse console"
+              aria-expanded="true"
+            >
+              <span aria-hidden="true">▼</span>
+            </button>
+          )}
+        </>
       }
+      contentRef={scrollRef}
+      onUserScroll={() => setFollowLatest(false)}
     >
-      <div ref={scrollRef} className="h-full min-h-0 overflow-y-auto" aria-live="polite">
+      <div aria-live="polite">
         {lines.length === 0 ? (
           <EmptyHint>console output will appear here</EmptyHint>
         ) : (
@@ -339,9 +375,11 @@ export function TimelinePanel({
   onSeekToEntry: (eventIndex: number) => void;
 }) {
   const activeRef = useRef<HTMLLIElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [followActive, setFollowActive] = useState(true);
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest' });
-  }, [currentIndex]);
+    if (followActive) activeRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [currentIndex, followActive]);
 
   return (
     <PanelShell
@@ -349,6 +387,9 @@ export function TimelinePanel({
       accent="yellow"
       count={entries.length}
       ariaLabel="Execution timeline"
+      headerAction={<FollowToggle active={followActive} onActivate={() => setFollowActive(true)} />}
+      contentRef={scrollRef}
+      onUserScroll={() => setFollowActive(false)}
     >
       {entries.length === 0 ? (
         <EmptyHint>run the code to record a timeline</EmptyHint>
@@ -385,6 +426,20 @@ export function TimelinePanel({
         </ol>
       )}
     </PanelShell>
+  );
+}
+
+function FollowToggle({ active, onActivate }: { active: boolean; onActivate: () => void }) {
+  return (
+    <button
+      type="button"
+      className="as-follow-toggle rounded border px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase"
+      aria-pressed={active}
+      title={active ? 'Automatic follow is active' : 'Resume automatic follow'}
+      onClick={onActivate}
+    >
+      {active ? 'Following' : 'Follow'}
+    </button>
   );
 }
 

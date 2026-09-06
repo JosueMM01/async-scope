@@ -183,7 +183,12 @@ export function VisualizerApp() {
         return;
       }
       const target = event.target as HTMLElement | null;
-      if (target?.closest('.as-editor-host, input, select, textarea, [contenteditable]') != null) {
+      if (
+        event.defaultPrevented ||
+        target?.closest(
+          '.as-editor-host, input, select, textarea, [contenteditable], button, a, [role="separator"], [role="tab"]',
+        ) != null
+      ) {
         return;
       }
       if (event.key === ' ') {
@@ -302,6 +307,7 @@ export function VisualizerApp() {
       loop={current.loop}
       stackEmpty={current.stack.length === 0}
       complete={pbStatus === 'done'}
+      paused={pbStatus === 'paused' || pbStatus === 'ready'}
     />
   );
 
