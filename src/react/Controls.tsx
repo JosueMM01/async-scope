@@ -72,14 +72,15 @@ export interface ControlsProps {
   playback: Playback;
   onRun: () => void;
   onStop: () => void;
+  settings?: React.ReactNode;
 }
 
-export function Controls({ playback, onRun, onStop }: ControlsProps) {
+export function Controls({ playback, onRun, onStop, settings }: ControlsProps) {
   const { status, cursor, lastStep, speed, canPlay, canPause, canStep, dispatch } = playback;
 
   return (
-    <div className="as-controls-bar flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2">
-      <div className="flex items-center gap-1.5" role="group" aria-label="Playback controls">
+    <div className="as-controls-bar flex min-w-0 flex-wrap items-center gap-2 border px-2 py-1.5">
+      <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Playback controls">
         <ControlButton
           label={status === 'recording' ? 'Running…' : 'Run'}
           onClick={onRun}
@@ -122,7 +123,7 @@ export function Controls({ playback, onRun, onStop }: ControlsProps) {
         />
       </div>
 
-      <div className="flex min-w-[160px] flex-1 items-center gap-2">
+      <div className="flex min-w-[130px] flex-1 items-center gap-2">
         <label className="sr-only" htmlFor="as-progress">
           Playback position
         </label>
@@ -166,6 +167,7 @@ export function Controls({ playback, onRun, onStop }: ControlsProps) {
         </select>
         <StatusIcon status={status} />
       </div>
+      {settings}
     </div>
   );
 }

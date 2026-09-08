@@ -1,6 +1,6 @@
 /** Panel rendering tests. */
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   CallStackPanel,
@@ -93,13 +93,17 @@ describe('queue panels', () => {
 describe('EventLoopBadge', () => {
   it('reflects the loop action and stack state', () => {
     render(<EventLoopBadge loop="drain-microtasks" stackEmpty />);
-    expect(screen.getByRole('status', { name: /draining microtasks/i })).toBeInTheDocument();
+    const status = screen.getByRole('status', { name: /draining microtasks/i });
+    expect(status).toBeInTheDocument();
+    expect(status).toHaveAttribute('data-loop-state', 'microtasks');
     expect(screen.getByText(/stack empty/i)).toBeInTheDocument();
   });
 
   it('shows waiting state when idle', () => {
     render(<EventLoopBadge loop="idle" stackEmpty={false} />);
-    expect(screen.getByRole('status', { name: /event loop: idle/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: /event loop: executing synchronous code/i }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -151,6 +155,27 @@ describe('TimelinePanel', () => {
     expect(screen.getByRole('button', { name: /global execution starts/i })).toHaveAttribute(
       'aria-current',
       'step',
+    );
+  });
+
+  it('stops automatic following after manual scrolling and can resume it', async () => {
+    const entries = [
+      { id: 1, kind: 'start' as const, text: 'Global execution starts', line: null },
+      { id: 2, kind: 'console' as const, text: 'console.log: A', line: 1 },
+    ];
+    const { rerender } = render(
+      <TimelinePanel entries={entries} currentIndex={0} onSeekToEntry={() => {}} />,
+    );
+    const region = screen.getByRole('region', { name: /execution timeline/i });
+    fireEvent.wheel(region.querySelector('.as-panel-scroll')!);
+    const follow = screen.getByRole('button', { name: 'Follow' });
+    expect(follow).toHaveAttribute('aria-pressed', 'false');
+
+    rerender(<TimelinePanel entries={entries} currentIndex={1} onSeekToEntry={() => {}} />);
+    await userEvent.setup().click(follow);
+    expect(screen.getByRole('button', { name: 'Following' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
   });
 });

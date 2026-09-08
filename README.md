@@ -22,12 +22,30 @@ El código del usuario no sale del navegador. El sandbox bloquea red, DOM, almac
 
 ## Desarrollo local
 
+### Rendimiento de la reproducción
+
+El playback reconstruye cada paso desde un máximo de 17 checkpoints, en lugar de
+retener una copia completa por evento. Console y Timeline virtualizan las listas
+de más de 100 entradas; «Show all rows» permite acceder a la lista completa para
+búsqueda y tecnologías de asistencia. El límite de 2000 eventos se conserva.
+
+`pnpm test src/engine/checkpoints.test.ts` compara la reconstrucción con el modelo
+completo, incluyendo retroceso y errores. También comprueba presupuestos de
+retención y latencia sobre una traza fija de 2000 eventos. La métrica de slots de
+arrays no equivale a bytes de heap; reconstruir un paso todavía crea arrays.
+
+### Comandos
+
 1. Instala Node.js 24.11 o posterior.
 2. Activa Corepack: `corepack enable`.
 3. Instala exactamente las dependencias bloqueadas: `pnpm install --frozen-lockfile`.
 4. Inicia Astro: `pnpm dev`.
 
 Antes de integrar una rama ejecuta `pnpm validate:full`. Este control revisa formato, lint, tipos, cobertura con umbrales, build de producción y pruebas E2E.
+
+Las E2E usan un preview propio en el puerto 4326 (configurable con
+`PLAYWRIGHT_PORT`) y rechazan reutilizar un servidor existente. No ejecutes un
+build mientras ese preview esté bajo prueba: ambos comparten `dist`.
 
 ## Flujo Git
 

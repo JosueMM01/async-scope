@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useRef } from 'react';
 import type { CompileError, SourceLanguage, TraceEvent } from '../engine/types';
-import { RUN_TIMEOUT_MS, type WorkerResponse } from '../worker/protocol';
+import { isWorkerResponse, MAX_SOURCE_LENGTH, RUN_TIMEOUT_MS } from '../worker/protocol';
 
 export interface RecorderCallbacks {
   onTrace: (events: TraceEvent[]) => void;
@@ -44,22 +44,39 @@ export function useRecorder(callbacks: RecorderCallbacks): Recorder {
     const worker = new Worker(new URL('../worker/recorder.worker.ts', import.meta.url), {
       type: 'module',
     });
-    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+    worker.onmessage = (event: MessageEvent<unknown>) => {
       const message = event.data;
       const active = runRef.current;
-      if (!active || message.id !== active.id) return; // stale run
+      if (!active || workerRef.current !== worker) return;
+      if (!isWorkerResponse(message, active.id)) {
+        clearTimeout(active.watchdog);
+        runRef.current = null;
+        worker.terminate();
+        if (workerRef.current === worker) workerRef.current = null;
+        callbacksRef.current.onCompileError({
+          phase: 'internal',
+          message: 'The sandbox returned an invalid response and was stopped.',
+          line: null,
+        });
+        return;
+      }
+      clearTimeout(active.watchdog);
+      runRef.current = null;
+      worker.terminate();
+      if (workerRef.current === worker) workerRef.current = null;
       if (message.type === 'trace') {
         callbacksRef.current.onTrace(message.events);
       } else {
         callbacksRef.current.onCompileError(message.error);
       }
-      clearTimeout(active.watchdog);
-      runRef.current = null;
     };
     worker.onerror = () => {
       const active = runRef.current;
-      if (active) clearTimeout(active.watchdog);
+      if (!active || workerRef.current !== worker) return;
+      clearTimeout(active.watchdog);
       runRef.current = null;
+      worker.terminate();
+      workerRef.current = null;
       callbacksRef.current.onTimeout();
     };
     workerRef.current = worker;
@@ -77,6 +94,14 @@ export function useRecorder(callbacks: RecorderCallbacks): Recorder {
   const run = useCallback(
     (code: string, language: SourceLanguage) => {
       terminate();
+      if (code.length > MAX_SOURCE_LENGTH) {
+        callbacksRef.current.onCompileError({
+          phase: 'unsupported',
+          message: `Source is too large. AsyncScope accepts up to ${MAX_SOURCE_LENGTH.toLocaleString()} characters.`,
+          line: null,
+        });
+        return;
+      }
       const worker = spawn();
       const id = nextIdRef.current++;
       const watchdog = setTimeout(() => {

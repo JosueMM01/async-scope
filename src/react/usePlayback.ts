@@ -3,10 +3,10 @@
  *
  * The trace is already recorded when playback starts, so Run/Pause/Resume/
  * Next/Previous/Restart/Seek are pure state transitions over an index into
- * the precomputed snapshot array. Stop clears everything.
+ * a bounded checkpoint index. Stop clears everything.
  */
 import { useMemo, useReducer } from 'react';
-import { buildStates, initialVisualizationState } from '../engine/trace/fold';
+import { createTraceIndex } from '../engine/trace/checkpoints';
 import type { CompileError, TraceEvent, VisualizationState } from '../engine/types';
 
 export type PlaybackStatus =
@@ -110,7 +110,6 @@ export function playbackReducer(state: PlaybackState, action: PlaybackAction): P
 }
 
 export interface Playback extends PlaybackState {
-  states: VisualizationState[];
   current: VisualizationState;
   lastStep: number;
   canPlay: boolean;
@@ -123,11 +122,8 @@ export interface Playback extends PlaybackState {
 export function usePlayback(): Playback {
   const [state, dispatch] = useReducer(playbackReducer, initialPlaybackState);
 
-  const states = useMemo(
-    () => (state.trace ? buildStates(state.trace) : [initialVisualizationState()]),
-    [state.trace],
-  );
-  const lastStep = states.length - 1;
+  const index = useMemo(() => createTraceIndex(state.trace ?? []), [state.trace]);
+  const lastStep = index.length - 1;
 
   const stepIntervalMs = BASE_STEP_MS / state.speed;
 
@@ -138,11 +134,10 @@ export function usePlayback(): Playback {
   const canPause = state.status === 'playing';
   const canStep = !!state.trace && state.trace.length > 0 && state.status !== 'recording';
 
-  const current = states[Math.min(state.cursor, lastStep)]!;
+  const current = useMemo(() => index.at(state.cursor), [index, state.cursor]);
 
   return {
     ...state,
-    states,
     current,
     lastStep,
     canPlay,

@@ -6,13 +6,40 @@
 import { expect, test } from '@playwright/test';
 import { consoleLines, runAndWait, selectExample, setEditorCode } from './helpers';
 
-test.beforeEach(async ({ page }) => {
+test('stored preferences hydrate without browser errors', async ({ page }) => {
+  const browserErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') browserErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => browserErrors.push(error.message));
+  await page.addInitScript(() => {
+    localStorage.setItem('asyncscope:source', 'console.log("persisted");');
+    localStorage.setItem('asyncscope:language', 'javascript');
+    localStorage.setItem('asyncscope:editor-percent', '55');
+    localStorage.setItem('asyncscope:console-height', '280');
+    localStorage.setItem('asyncscope:console-open', 'false');
+  });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'AsyncScope' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Expand console' })).toBeVisible();
+  await expect(
+    page.getByRole('separator', { name: 'Resize code editor and runtime' }),
+  ).toHaveAttribute('aria-valuenow', '55');
+  await expect(page.getByRole('textbox')).toContainText('console.log("persisted");');
+  expect(browserErrors).toEqual([]);
+});
+
+test.beforeEach(async ({ page }, testInfo) => {
+  if (testInfo.title === 'stored preferences hydrate without browser errors') return;
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'AsyncScope' })).toBeVisible();
   // Start from a known editor state for every test.
   await page.evaluate(() => {
     window.localStorage.removeItem('asyncscope:source');
     window.localStorage.removeItem('asyncscope:language');
+    window.localStorage.removeItem('asyncscope:editor-percent');
+    window.localStorage.removeItem('asyncscope:console-height');
+    window.localStorage.removeItem('asyncscope:console-open');
   });
   await page.reload();
 });
@@ -141,6 +168,15 @@ test('11 — TypeScript types are erased while async behavior stays observable',
     .toEqual(['start: Ada', 'scheduled', 'after await', 'timer: 20']);
 });
 
+test('sandbox output is inert text and cannot inject markup into the page', async ({ page }) => {
+  await setEditorCode(page, 'console.log("<img src=x onerror=window.__asyncscope_xss=true>");');
+  await runAndWait(page);
+  const console = page.getByRole('region', { name: /console output/i });
+  await expect(console).toContainText('<img src=x onerror=window.__asyncscope_xss=true>');
+  await expect(console.locator('img')).toHaveCount(0);
+  expect(await page.evaluate(() => '__asyncscope_xss' in window)).toBe(false);
+});
+
 test('visualizer panels reflect execution state during playback', async ({ page }) => {
   await setEditorCode(page, 'setTimeout(() => console.log("t"), 30);\nconsole.log("sync");');
   await page.getByRole('button', { name: 'Run (Ctrl+Enter)' }).click();
@@ -189,4 +225,39 @@ test('step controls walk the timeline back and forth', async ({ page }) => {
   // All the way back to the start — no console output yet.
   for (let i = 0; i < 10; i++) await prev.click({ force: true });
   expect(await page.locator('.as-console-line').count()).toBe(0);
+});
+
+test('event-loop visual state is reconstructed by stepping', async ({ page }) => {
+  await setEditorCode(
+    page,
+    'Promise.resolve().then(() => console.log("micro"));\nsetTimeout(() => console.log("task"), 0);',
+  );
+  await runAndWait(page);
+  await page.getByRole('button', { name: '↺ Restart' }).click();
+  const badge = page.getByRole('status', { name: /event loop/i });
+  const next = page.getByRole('button', { name: 'Next ▶ (ArrowRight)' });
+  const states = new Set<string>();
+  for (let index = 0; index < 80 && (await next.isEnabled()); index++) {
+    await next.click();
+    states.add((await badge.getAttribute('data-loop-state')) ?? '');
+  }
+  expect(states).toContain('microtasks');
+  expect(states).toContain('task');
+  expect(states).toContain('complete');
+
+  await page.getByRole('button', { name: '◀ Prev (ArrowLeft)' }).click();
+  await expect(badge).not.toHaveAttribute('data-loop-state', 'complete');
+  await expect(badge).toHaveAttribute('data-paused', 'true');
+});
+
+test('production interactions produce no browser errors', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error' || message.type() === 'warning') errors.push(message.text());
+  });
+  await page.goto('/');
+  await selectExample(page, 'Promise vs setTimeout');
+  await runAndWait(page);
+  expect(errors).toEqual([]);
 });

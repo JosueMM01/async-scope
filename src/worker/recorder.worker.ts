@@ -9,7 +9,7 @@
  * removed on top of the static scans and parameter shadowing.
  */
 import { executeProgram } from '../engine/execute';
-import type { RunRequest, WorkerResponse } from './protocol';
+import { boundWorkerResponse, isRunRequest, type WorkerResponse } from './protocol';
 
 const scope = self as unknown as Record<string, unknown> & {
   postMessage: (message: WorkerResponse) => void;
@@ -17,6 +17,26 @@ const scope = self as unknown as Record<string, unknown> & {
 
 // Keep our own transport before removing the raw scope API.
 const post = scope.postMessage.bind(self);
+
+// Remove the constructor links commonly used to recover native dynamic-code
+// functions from literals. The AST scanner rejects them too; this is
+// worker-only defense in depth and does not alter the Node test environment.
+for (const prototype of [
+  Function.prototype,
+  Object.getPrototypeOf(async function () {}),
+  Object.getPrototypeOf(function* () {}),
+  Object.getPrototypeOf(async function* () {}),
+]) {
+  try {
+    Object.defineProperty(prototype, 'constructor', {
+      value: undefined,
+      writable: false,
+      configurable: false,
+    });
+  } catch {
+    // A browser may already expose a non-configurable hardened descriptor.
+  }
+}
 
 for (const name of [
   'fetch',
@@ -42,13 +62,13 @@ for (const name of [
   }
 }
 
-self.onmessage = (event: MessageEvent<RunRequest>) => {
+self.onmessage = (event: MessageEvent<unknown>) => {
   const request = event.data;
-  if (request.type !== 'run') return;
+  if (!isRunRequest(request)) return;
   const outcome = executeProgram(request.code, { language: request.language });
   if (outcome.ok) {
-    post({ type: 'trace', id: request.id, events: outcome.events });
+    post(boundWorkerResponse({ type: 'trace', id: request.id, events: outcome.events }));
   } else {
-    post({ type: 'compile-error', id: request.id, error: outcome.error });
+    post(boundWorkerResponse({ type: 'compile-error', id: request.id, error: outcome.error }));
   }
 };

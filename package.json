@@ -37,6 +37,7 @@
     "@codemirror/view": "^6.36.0",
     "@lezer/highlight": "^1.2.3",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-virtual": "^3.14.10",
     "astro": "^7.2.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

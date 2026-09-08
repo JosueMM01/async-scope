@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4321;
+// Keep production verification separate from a developer's running Astro server.
+const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 4326);
 
 export default defineConfig({
   testDir: 'e2e',
@@ -26,7 +27,7 @@ export default defineConfig({
       ...process.env,
       ASTRO_PREVIEW_BACKGROUND: '0',
     },
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 60_000,
   },
 });

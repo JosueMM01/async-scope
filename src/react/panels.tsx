@@ -4,7 +4,8 @@
  *
  * All panels are pure functions of VisualizationState — no engine knowledge.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { VirtualRows } from './VirtualRows';
 import type {
   ApiTimer,
   ConsoleLine,
@@ -21,12 +22,18 @@ export function PanelShell({
   count,
   children,
   ariaLabel,
+  headerAction,
+  contentRef,
+  onUserScroll,
 }: {
   title: string;
   accent: 'cyan' | 'purple' | 'orange' | 'green' | 'yellow' | 'muted';
   count?: number;
   children: React.ReactNode;
   ariaLabel?: string;
+  headerAction?: React.ReactNode;
+  contentRef?: React.Ref<HTMLDivElement>;
+  onUserScroll?: () => void;
 }) {
   const accentClass = {
     cyan: 'as-accent-cyan',
@@ -43,13 +50,29 @@ export function PanelShell({
     >
       <header className="as-panel-header flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
         <h3 className="text-[11px] font-semibold tracking-wider uppercase">{title}</h3>
-        {typeof count === 'number' && (
-          <span className="as-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
-            {count}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {typeof count === 'number' && (
+            <span className="as-badge rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
+              {count}
+            </span>
+          )}
+          {headerAction}
+        </div>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">{children}</div>
+      <div
+        ref={contentRef}
+        className="as-panel-scroll min-h-0 flex-1 overflow-y-auto px-2 pb-2"
+        onWheelCapture={onUserScroll}
+        onTouchStartCapture={onUserScroll}
+        onPointerDownCapture={onUserScroll}
+        onKeyDownCapture={(event) => {
+          if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) {
+            onUserScroll?.();
+          }
+        }}
+      >
+        {children}
+      </div>
     </section>
   );
 }
@@ -189,34 +212,60 @@ export function TaskQueuePanel({ items }: { items: TaskItem[] }) {
 const LOOP_LABEL: Record<LoopAction, string> = {
   idle: 'idle',
   'drain-microtasks': 'draining microtasks',
-  'run-task': 'moving task to the stack',
+  'run-task': 'selecting next task',
   'advance-time': 'waiting for timers',
 };
 
-const LOOP_ICON: Record<LoopAction, string> = {
-  idle: '∅',
-  'drain-microtasks': '»»',
-  'run-task': '→',
-  'advance-time': '⏳',
-};
-
-export function EventLoopBadge({ loop, stackEmpty }: { loop: LoopAction; stackEmpty: boolean }) {
+export function EventLoopBadge({
+  loop,
+  stackEmpty,
+  complete = false,
+  paused = false,
+}: {
+  loop: LoopAction;
+  stackEmpty: boolean;
+  complete?: boolean;
+  paused?: boolean;
+}) {
   const active = loop !== 'idle';
+  const description = complete
+    ? 'execution complete'
+    : active
+      ? LOOP_LABEL[loop]
+      : stackEmpty
+        ? 'waiting for work'
+        : 'executing synchronous code';
+  const visualState = complete
+    ? 'complete'
+    : loop === 'drain-microtasks'
+      ? 'microtasks'
+      : loop === 'run-task'
+        ? 'task'
+        : loop === 'advance-time'
+          ? 'timers'
+          : stackEmpty
+            ? 'waiting'
+            : 'synchronous';
   return (
     <div
       className={`as-loop-badge flex items-center gap-3 rounded-lg border px-3 py-2 ${active ? 'as-loop-active' : 'as-loop-idle'}`}
       role="status"
-      aria-label={`Event Loop: ${LOOP_LABEL[loop]}`}
+      aria-label={`Event Loop: ${description}`}
       data-active={active ? 'true' : 'false'}
+      data-loop-state={visualState}
+      data-paused={paused ? 'true' : 'false'}
     >
-      <span className="as-loop-icon font-mono text-sm font-bold" aria-hidden="true">
-        {LOOP_ICON[loop]}
+      <span className="as-loop-icon" aria-hidden="true">
+        <svg className="as-loop-mark" viewBox="0 0 32 32" focusable="false">
+          <path d="M25.8 11.3A11 11 0 0 0 7.1 8.1" />
+          <path d="m7.3 3.8-.2 4.3 4.3.2" />
+          <path d="M6.2 20.7a11 11 0 0 0 18.7 3.2" />
+          <path d="m24.7 28.2.2-4.3-4.3-.2" />
+        </svg>
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-semibold tracking-wider uppercase">Event Loop</p>
-        <p className="truncate text-[11.5px] opacity-90">
-          {active ? LOOP_LABEL[loop] : 'waiting for work'}
-        </p>
+        <p className="truncate text-[11.5px] opacity-90">{description}</p>
       </div>
       <span
         className="as-loop-stack rounded px-1.5 py-0.5 font-mono text-[10px]"
@@ -242,32 +291,80 @@ const CONSOLE_LEVEL_ICON: Record<ConsoleLine['level'], string> = {
   error: '✖',
 };
 
-export function ConsolePanel({ lines }: { lines: ConsoleLine[] }) {
+export function ConsolePanel({
+  lines,
+  onCollapse,
+}: {
+  lines: ConsoleLine[];
+  onCollapse?: () => void;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [followLatest, setFollowLatest] = useState(true);
+  const [virtualized, setVirtualized] = useState(true);
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [lines]);
+    if (el && followLatest && (!virtualized || lines.length <= 100)) el.scrollTop = el.scrollHeight;
+  }, [followLatest, lines, virtualized]);
 
   return (
-    <PanelShell title="Console" accent="muted" count={lines.length} ariaLabel="Console output">
-      <div ref={scrollRef} className="h-full min-h-0 overflow-y-auto" aria-live="polite">
+    <PanelShell
+      title="Console"
+      accent="muted"
+      count={lines.length}
+      ariaLabel="Console output"
+      headerAction={
+        <>
+          <FollowToggle active={followLatest} onActivate={() => setFollowLatest(true)} />
+          {lines.length > 100 && (
+            <button
+              type="button"
+              className="as-follow-toggle"
+              onClick={() => setVirtualized(!virtualized)}
+            >
+              {virtualized ? 'Show all rows' : 'Window rows'}
+            </button>
+          )}
+          {onCollapse && (
+            <button
+              type="button"
+              className="as-dock-toggle"
+              onClick={onCollapse}
+              aria-label="Collapse console"
+              aria-expanded="true"
+            >
+              <span aria-hidden="true">▼</span>
+            </button>
+          )}
+        </>
+      }
+      contentRef={scrollRef}
+      onUserScroll={() => setFollowLatest(false)}
+    >
+      <div aria-live="polite">
         {lines.length === 0 ? (
           <EmptyHint>console output will appear here</EmptyHint>
         ) : (
-          <ol aria-label="Console output lines">
-            {lines.map((line) => (
-              <li
-                key={line.id}
-                className={`as-console-line ${CONSOLE_LEVEL_CLASS[line.level]} flex items-start gap-2 rounded px-2 py-1 font-mono text-[12.5px] whitespace-pre-wrap break-words`}
-              >
-                <span className="as-console-icon shrink-0 opacity-80" aria-hidden="true">
-                  {CONSOLE_LEVEL_ICON[line.level]}
-                </span>
-                <span className="as-console-text min-w-0">{line.text}</span>
-              </li>
-            ))}
-          </ol>
+          <VirtualRows
+            count={lines.length}
+            scrollRef={scrollRef}
+            followIndex={followLatest ? lines.length - 1 : null}
+            label="Console output lines"
+            enabled={virtualized}
+            renderRow={(index) => {
+              const line = lines[index]!;
+              return (
+                <li
+                  key={line.id}
+                  className={`as-console-line ${CONSOLE_LEVEL_CLASS[line.level]} flex items-start gap-2 rounded px-2 py-1 font-mono text-[12.5px] whitespace-pre-wrap break-words`}
+                >
+                  <span className="as-console-icon shrink-0 opacity-80" aria-hidden="true">
+                    {CONSOLE_LEVEL_ICON[line.level]}
+                  </span>
+                  <span className="as-console-text min-w-0">{line.text}</span>
+                </li>
+              );
+            }}
+          />
         )}
       </div>
     </PanelShell>
@@ -297,9 +394,13 @@ export function TimelinePanel({
   onSeekToEntry: (eventIndex: number) => void;
 }) {
   const activeRef = useRef<HTMLLIElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [followActive, setFollowActive] = useState(true);
+  const [virtualized, setVirtualized] = useState(true);
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ block: 'nearest' });
-  }, [currentIndex]);
+    if (followActive && (!virtualized || entries.length <= 100))
+      activeRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [currentIndex, followActive, virtualized, entries.length]);
 
   return (
     <PanelShell
@@ -307,12 +408,34 @@ export function TimelinePanel({
       accent="yellow"
       count={entries.length}
       ariaLabel="Execution timeline"
+      headerAction={
+        <>
+          <FollowToggle active={followActive} onActivate={() => setFollowActive(true)} />
+          {entries.length > 100 && (
+            <button
+              type="button"
+              className="as-follow-toggle"
+              onClick={() => setVirtualized(!virtualized)}
+            >
+              {virtualized ? 'Show all rows' : 'Window rows'}
+            </button>
+          )}
+        </>
+      }
+      contentRef={scrollRef}
+      onUserScroll={() => setFollowActive(false)}
     >
       {entries.length === 0 ? (
         <EmptyHint>run the code to record a timeline</EmptyHint>
       ) : (
-        <ol className="flex flex-col" aria-label="Execution timeline events">
-          {entries.map((entry, index) => {
+        <VirtualRows
+          count={entries.length}
+          scrollRef={scrollRef}
+          followIndex={followActive ? currentIndex : null}
+          label="Execution timeline events"
+          enabled={virtualized}
+          renderRow={(index) => {
+            const entry = entries[index]!;
             const isPast = index <= currentIndex;
             const isActive = index === currentIndex;
             return (
@@ -339,15 +462,29 @@ export function TimelinePanel({
                 </button>
               </li>
             );
-          })}
-        </ol>
+          }}
+        />
       )}
     </PanelShell>
   );
 }
 
+function FollowToggle({ active, onActivate }: { active: boolean; onActivate: () => void }) {
+  return (
+    <button
+      type="button"
+      className="as-follow-toggle rounded border px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase"
+      aria-pressed={active}
+      title={active ? 'Automatic follow is active' : 'Resume automatic follow'}
+      onClick={onActivate}
+    >
+      {active ? 'Following' : 'Follow'}
+    </button>
+  );
+}
+
 function EmptyHint({ children }: { children: React.ReactNode }) {
   return (
-    <p className="as-empty-hint px-2 py-6 text-center text-[12px] italic opacity-70">{children}</p>
+    <p className="as-empty-hint px-2 py-3 text-center text-[12px] italic opacity-70">{children}</p>
   );
 }

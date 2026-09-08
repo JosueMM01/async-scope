@@ -8,87 +8,60 @@ import { VisualizerApp } from '../react/VisualizerApp';
   title="AsyncScope — Watch modern JavaScript and TypeScript execute"
   description="Write modern JavaScript or TypeScript and watch, step by step, how the call stack, Web APIs, microtask queue, task queue and the event loop run it."
 >
-  <header class="mx-auto flex w-full max-w-[1500px] flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
-    <span aria-hidden="true" class="inline-flex">
-      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="7" fill="var(--as-elevated)"></rect>
-        <path d="M11 9l12 7-12 7z" fill="var(--as-cyan)"></path>
-      </svg>
-    </span>
-    <div class="min-w-0">
-      <h1 class="text-lg font-bold tracking-tight">
-        Async<span class="text-[var(--as-cyan)]">Scope</span>
-      </h1>
-      <p class="text-[12px] text-[var(--as-muted)]">
-        Write modern JavaScript or TypeScript and watch how it executes.
-      </p>
-    </div>
-    <nav class="ml-auto flex items-center gap-2" aria-label="Page">
-      <a
-        href="#how-it-works"
-        class="rounded-md border px-2.5 py-1.5 text-[12px] font-semibold"
-        style="background: var(--as-elevated); border-color: var(--as-border-strong);"
-      >
-        How it works
-      </a>
-      <ThemeToggle />
-    </nav>
-  </header>
-
-  <main id="visualizer" class="mx-auto w-full max-w-[1500px] px-4 pb-6 sm:px-6">
-    <VisualizerApp client:load />
-  </main>
-
-  <section
-    id="how-it-works"
-    class="mx-auto w-full max-w-[1500px] px-4 pb-10 sm:px-6"
-    aria-labelledby="how-it-works-title"
-  >
-    <h2 id="how-it-works-title" class="mb-3 text-base font-bold tracking-tight">How it works</h2>
-    <div class="grid gap-3 sm:grid-cols-3">
-      <article
-        class="rounded-lg border p-4"
-        style="background: var(--as-surface); border-color: var(--as-border);"
-      >
-        <h3 class="mb-1 text-[13px] font-bold text-[var(--as-green)]">1 · You write code</h3>
-        <p class="text-[13px] leading-relaxed text-[var(--as-muted)]">
-          Use the supported subset of modern JavaScript or TypeScript: functions, promises,
-          <code class="font-mono">async</code>/<code class="font-mono">await</code>, timers and
-          <code class="font-mono">queueMicrotask</code>. Nothing is executed until you press
-          <strong>Run</strong>.
+  <div class="as-page-shell flex min-h-0 flex-col">
+    <header class="as-app-header flex shrink-0 items-center gap-2 border-b px-3 sm:px-4">
+      <span aria-hidden="true" class="inline-flex">
+        <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="var(--as-elevated)"></rect>
+          <path d="M11 9l12 7-12 7z" fill="var(--as-cyan)"></path>
+        </svg>
+      </span>
+      <div class="min-w-0 leading-none">
+        <h1 class="text-[15px] font-bold tracking-tight">
+          Async<span class="text-[var(--as-cyan)]">Scope</span>
+        </h1>
+        <p class="hidden text-[10px] text-[var(--as-muted)] sm:block">
+          Write modern JavaScript or TypeScript and watch how it executes.
         </p>
-      </article>
-      <article
-        class="rounded-lg border p-4"
-        style="background: var(--as-surface); border-color: var(--as-border);"
-      >
-        <h3 class="mb-1 text-[13px] font-bold text-[var(--as-cyan)]">2 · We record the run</h3>
-        <p class="text-[13px] leading-relaxed text-[var(--as-muted)]">
-          Your code is instrumented and executed inside an isolated
-          <strong>Web Worker</strong> with a virtual event loop. Every stack push, timer, microtask and
-          task becomes an event — deterministically, in real execution order.
-        </p>
-      </article>
-      <article
-        class="rounded-lg border p-4"
-        style="background: var(--as-surface); border-color: var(--as-border);"
-      >
-        <h3 class="mb-1 text-[13px] font-bold text-[var(--as-yellow)]">3 · You scrub time</h3>
-        <p class="text-[13px] leading-relaxed text-[var(--as-muted)]">
-          Play, pause, step forward and
-          <strong>backwards</strong>, or drag the timeline slider. Each step is a snapshot of the
-          whole runtime: stack, queues and console, exactly as they were.
-        </p>
-      </article>
-    </div>
-  </section>
+      </div>
+      <nav class="ml-auto flex items-center gap-2" aria-label="Page">
+        <details class="as-help-menu relative">
+          <summary
+            class="as-btn cursor-pointer list-none rounded-md border px-2.5 py-1.5 text-[12px] font-semibold"
+          >
+            Help
+          </summary>
+          <div
+            class="as-help-popover absolute top-full right-0 z-40 mt-2 w-[min(360px,calc(100vw-1rem))] rounded-lg border p-4 shadow-xl"
+          >
+            <h2 class="text-sm font-bold">How AsyncScope works</h2>
+            <ol class="mt-2 space-y-2 text-[12px] leading-relaxed text-[var(--as-muted)]">
+              <li>
+                <strong class="text-[var(--as-green)]">1.</strong> Write supported JavaScript or TypeScript.
+              </li>
+              <li>
+                <strong class="text-[var(--as-cyan)]">2.</strong> Run it in an isolated worker with a
+                deterministic event loop.
+              </li>
+              <li>
+                <strong class="text-[var(--as-yellow)]">3.</strong> Step through stack, APIs, queues and
+                Timeline together.
+              </li>
+            </ol>
+            <p
+              class="mt-3 border-t pt-3 text-[11px] text-[var(--as-muted)]"
+              style="border-color: var(--as-border);"
+            >
+              TypeScript types are erased before execution. Everything stays in this browser.
+            </p>
+          </div>
+        </details>
+        <ThemeToggle />
+      </nav>
+    </header>
 
-  <footer
-    class="mx-auto w-full max-w-[1500px] px-4 pb-8 text-[12px] text-[var(--as-muted)] sm:px-6"
-  >
-    <p>
-      AsyncScope — an educational JavaScript and TypeScript runtime visualizer. TypeScript types are
-      erased before execution. Everything runs locally in your browser; no code leaves this page.
-    </p>
-  </footer>
+    <main id="visualizer" class="flex min-h-0 w-full flex-1 overflow-hidden">
+      <VisualizerApp client:load />
+    </main>
+  </div>
 </BaseLayout>

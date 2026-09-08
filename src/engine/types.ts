@@ -150,10 +150,10 @@ export interface EngineLimits {
 
 export const DEFAULT_LIMITS: EngineLimits = {
   maxTicks: 2_000_000,
-  maxEvents: 20_000,
+  maxEvents: 2_000,
   wallClockMs: 10_000,
   maxStackDepth: 200,
   maxTimers: 1_000,
   maxTasksRun: 2_000,
-  maxMicrotasks: 20_000,
+  maxMicrotasks: 2_000,
 };

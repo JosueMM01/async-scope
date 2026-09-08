@@ -26,7 +26,7 @@ describe('playback reducer', () => {
     const playback = dispatchAll([]);
     expect(playback.status).toBe('idle');
     expect(playback.trace).toBeNull();
-    expect(playback.states).toHaveLength(1);
+    expect(playback.lastStep).toBe(0);
     expect(playback.current.stack).toEqual([]);
   });
 
@@ -34,7 +34,7 @@ describe('playback reducer', () => {
     const playback = dispatchAll([{ type: 'run-start' }, { type: 'run-complete', events }]);
     expect(playback.status).toBe('playing');
     expect(playback.cursor).toBe(0);
-    expect(playback.states).toHaveLength(events.length + 1);
+    expect(playback.lastStep).toBe(events.length);
     expect(playback.canPause).toBe(true);
   });
 
@@ -120,7 +120,10 @@ describe('playback reducer', () => {
   });
 
   it('produces states consistent with buildStates', () => {
-    const playback = dispatchAll([{ type: 'run-complete', events }]);
-    expect(playback.states).toEqual(buildStates(events));
+    const playback = dispatchAll([
+      { type: 'run-complete', events },
+      { type: 'seek', cursor: events.length },
+    ]);
+    expect(playback.current).toEqual(buildStates(events).at(-1));
   });
 });

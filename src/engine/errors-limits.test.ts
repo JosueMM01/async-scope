@@ -70,6 +70,18 @@ describe('unsupported features', () => {
     expect(executeProgram('const F = Function("return 1");').ok).toBe(false);
   });
 
+  it('blocks constructor-chain dynamic code escapes', () => {
+    const direct = executeProgram('const root = (() => {}).constructor("return this")();');
+    const computed = executeProgram('const root = (() => {})["constructor"]("return this")();');
+    const joined = executeProgram('const root = (() => {})["con" + "structor"]("return this")();');
+    const optional = executeProgram('const root = (() => {})?.constructor("return this")();');
+    expect(direct.ok).toBe(false);
+    expect(computed.ok).toBe(false);
+    expect(joined.ok).toBe(false);
+    expect(optional.ok).toBe(false);
+    if (!direct.ok) expect(direct.error.message).toContain('constructor');
+  });
+
   it('blocks globalThis and self escapes', () => {
     expect(executeProgram('globalThis.setTimeout(() => {}, 0);').ok).toBe(false);
     expect(executeProgram('self.setTimeout(() => {}, 0);').ok).toBe(false);
@@ -129,6 +141,7 @@ describe('runtime errors', () => {
     expect(error?.kind).toBe('unhandled-rejection');
     expect(error?.message).toContain('Uncaught (in promise) Error: unhandled');
     expect(consoleText(events)).toEqual(['after']);
+    expect(events.at(-1)).toMatchObject({ type: 'execution:end', ok: false });
   });
 
   it('does not report rejections handled later in the same drain', () => {
@@ -154,6 +167,19 @@ describe('runtime errors', () => {
 });
 
 describe('limits and safety', () => {
+  it('keeps traces bounded while preserving the first terminal error and execution:end', () => {
+    const outcome = executeProgram(
+      'for (let i = 0; i < 500; i++) Promise.reject(new Error(`reject ${i}`));',
+      { ...TIGHT_LIMITS, maxEvents: 40 },
+    );
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.events.length).toBeLessThanOrEqual(42);
+      expect(outcome.events.some((event) => event.type === 'error')).toBe(true);
+      expect(outcome.events.at(-1)).toMatchObject({ type: 'execution:end', ok: false });
+    }
+  });
+
   it('stops infinite while loops with a limit error', () => {
     const events = executeProgram('while (true) {}', TIGHT_LIMITS);
     expect(events.ok).toBe(true);

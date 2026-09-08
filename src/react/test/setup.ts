@@ -11,6 +11,8 @@ class ResizeObserverStub {
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
 Element.prototype.scrollIntoView ??= () => {};
+Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+Range.prototype.getBoundingClientRect ??= () => new DOMRect();
 
 // jsdom has no matchMedia; provide a permanent-false media query list.
 if (typeof window.matchMedia !== 'function') {

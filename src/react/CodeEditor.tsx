@@ -2,7 +2,7 @@
  * CodeMirror 6 editor with a Monokai Night theme, line numbers and an
  * "executing line" highlight driven by the playback cursor.
  */
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Compartment,
   EditorState,
@@ -128,6 +128,16 @@ export function CodeEditor({
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
+  const [followExecution, setFollowExecution] = useState(true);
+
+  const revealActiveLine = useCallback(() => {
+    const view = viewRef.current;
+    if (!view || activeLine == null) return;
+    const lineNumber = Math.min(Math.max(1, activeLine), view.state.doc.lines);
+    view.dispatch({
+      effects: EditorView.scrollIntoView(view.state.doc.line(lineNumber).from, { y: 'center' }),
+    });
+  }, [activeLine]);
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -184,17 +194,54 @@ export function CodeEditor({
   }, [value]);
 
   useEffect(() => {
-    viewRef.current?.dispatch({ effects: setActiveLineEffect.of(activeLine) });
-  }, [activeLine]);
+    const view = viewRef.current;
+    if (!view) return;
+    const effects: StateEffect<unknown>[] = [setActiveLineEffect.of(activeLine)];
+    if (followExecution && activeLine != null) {
+      const lineNumber = Math.min(Math.max(1, activeLine), view.state.doc.lines);
+      effects.push(
+        EditorView.scrollIntoView(view.state.doc.line(lineNumber).from, { y: 'center' }),
+      );
+    }
+    view.dispatch({ effects });
+  }, [activeLine, followExecution]);
+
+  const stopFollowing = () => setFollowExecution(false);
+
+  const handleNavigationKey = (event: React.KeyboardEvent) => {
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(event.key)) {
+      stopFollowing();
+    }
+  };
 
   return (
-    <div
-      ref={hostRef}
-      role="group"
-      aria-label={
-        ariaLabel ?? `${language === 'typescript' ? 'TypeScript' : 'JavaScript'} code editor`
-      }
-      className="as-editor-host h-full min-h-0 overflow-hidden"
-    />
+    <div className="as-editor-shell relative h-full min-h-0">
+      <div
+        ref={hostRef}
+        role="group"
+        aria-label={
+          ariaLabel ?? `${language === 'typescript' ? 'TypeScript' : 'JavaScript'} code editor`
+        }
+        className="as-editor-host h-full min-h-0 overflow-hidden"
+        onWheelCapture={stopFollowing}
+        onTouchStartCapture={stopFollowing}
+        onPointerDownCapture={stopFollowing}
+        onKeyDownCapture={handleNavigationKey}
+      />
+      <button
+        type="button"
+        className="as-follow-toggle absolute top-2 right-3 z-10 rounded border px-2 py-1 text-[10px] font-semibold tracking-wide uppercase"
+        aria-pressed={followExecution}
+        title={
+          followExecution ? 'Stop following the active line' : 'Follow the active execution line'
+        }
+        onClick={() => {
+          setFollowExecution(!followExecution);
+          if (!followExecution) revealActiveLine();
+        }}
+      >
+        {followExecution ? 'Following' : 'Follow line'}
+      </button>
+    </div>
   );
 }

@@ -100,6 +100,44 @@ export function scanForUnsupportedFeatures(ast: t.Node): void {
     ImportExpression(path) {
       unsupported('dynamic import() is not supported', path.node);
     },
+    MemberExpression(path) {
+      const property = path.node.property;
+      let name: string | null =
+        !path.node.computed && property.type === 'Identifier'
+          ? property.name
+          : property.type === 'StringLiteral'
+            ? property.value
+            : null;
+      if (path.node.computed && name === null) {
+        const evaluated = path.get('property').evaluate();
+        if (evaluated.confident && typeof evaluated.value === 'string') name = evaluated.value;
+      }
+      if (name === 'constructor' || name === '__proto__' || name === 'prototype') {
+        unsupported(
+          `property access to "${name}" is not available in the AsyncScope sandbox`,
+          path.node,
+        );
+      }
+    },
+    OptionalMemberExpression(path) {
+      const property = path.node.property;
+      let name: string | null =
+        !path.node.computed && property.type === 'Identifier'
+          ? property.name
+          : property.type === 'StringLiteral'
+            ? property.value
+            : null;
+      if (path.node.computed && name === null) {
+        const evaluated = path.get('property').evaluate();
+        if (evaluated.confident && typeof evaluated.value === 'string') name = evaluated.value;
+      }
+      if (name === 'constructor' || name === '__proto__' || name === 'prototype') {
+        unsupported(
+          `property access to "${name}" is not available in the AsyncScope sandbox`,
+          path.node,
+        );
+      }
+    },
     ReferencedIdentifier(path) {
       const name = path.node.name;
       const reason = BLOCKED_GLOBALS[name];
