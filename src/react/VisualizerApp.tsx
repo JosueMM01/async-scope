@@ -137,6 +137,11 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
 
   const playback = usePlayback();
   const dispatch = playback.dispatch;
+  const [executed, setExecuted] = useState<Readonly<{
+    source: string;
+    language: SourceLanguage;
+  }> | null>(null);
+  const [viewExecuted, setViewExecuted] = useState(false);
 
   const handleTrace = useCallback(
     (events: TraceEvent[]) => {
@@ -152,11 +157,15 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
   });
 
   const run = useCallback(() => {
+    setExecuted({ source, language });
+    setViewExecuted(false);
     dispatch({ type: 'run-start' });
     recorder.run(source, language);
   }, [dispatch, language, recorder, source]);
 
   const stop = useCallback(() => {
+    setExecuted(null);
+    setViewExecuted(false);
     recorder.stop();
     dispatch({ type: 'stop' });
   }, [dispatch, recorder]);
@@ -271,10 +280,28 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
   );
 
   const hasTrace = !!trace && pbStatus !== 'recording';
-  const activeLine = hasTrace ? current.currentLine : null;
+  const sourceChanged =
+    !!executed && (source !== executed.source || language !== executed.language);
+  const showingExecuted = viewExecuted && sourceChanged;
+  const activeLine = hasTrace && (!sourceChanged || showingExecuted) ? current.currentLine : null;
 
   const editor = (
-    <CodeEditor value={source} onChange={setSource} activeLine={activeLine} language={language} />
+    <CodeEditor
+      key={showingExecuted ? 'executed' : 'draft'}
+      value={showingExecuted ? executed!.source : source}
+      onChange={(value) => {
+        dispatch({ type: 'pause' });
+        setSource(value);
+      }}
+      activeLine={activeLine}
+      language={showingExecuted ? executed!.language : language}
+      readOnly={showingExecuted}
+      ariaLabel={
+        showingExecuted
+          ? 'Executed code (read-only)'
+          : `${language === 'typescript' ? 'TypeScript' : 'JavaScript'} code editor`
+      }
+    />
   );
 
   const settings = (
@@ -342,6 +369,23 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
   return (
     <div className="as-workbench-shell flex min-h-0 min-w-0 flex-1 flex-col">
       <Controls playback={playback} onRun={run} onStop={stop} settings={settings} />
+
+      {sourceChanged && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-1 text-[12px]">
+          <p role="status" className="min-w-0 flex-1">
+            {showingExecuted
+              ? `Viewing executed ${executed!.language === 'typescript' ? 'TypeScript' : 'JavaScript'} (read-only). Your edits are preserved.`
+              : 'Code or language changed. Playback and errors belong to the previous execution. Run to update.'}
+          </p>
+          <button
+            type="button"
+            className="as-btn rounded-md border px-2 py-1"
+            onClick={() => setViewExecuted((value) => !value)}
+          >
+            {showingExecuted ? 'Back to edits' : 'View executed code'}
+          </button>
+        </div>
+      )}
 
       {compileError && (
         <div className="as-error-banner shrink-0 border px-3 py-1.5" role="alert">

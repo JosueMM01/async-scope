@@ -165,6 +165,7 @@ export function CodeEditor({
             }
           }),
           EditorState.readOnly.of(readOnly),
+          EditorView.editable.of(!readOnly),
         ],
       }),
       parent: host,
