@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://asyncscope.josuem01.dev',
+  site: 'https://async-scope.josuem01.dev',
   output: 'static',
   integrations: [react()],
   vite: {

@@ -137,6 +137,11 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
 
   const playback = usePlayback();
   const dispatch = playback.dispatch;
+  const [executed, setExecuted] = useState<Readonly<{
+    source: string;
+    language: SourceLanguage;
+  }> | null>(null);
+  const [viewExecuted, setViewExecuted] = useState(false);
 
   const handleTrace = useCallback(
     (events: TraceEvent[]) => {
@@ -152,11 +157,15 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
   });
 
   const run = useCallback(() => {
+    setExecuted({ source, language });
+    setViewExecuted(false);
     dispatch({ type: 'run-start' });
     recorder.run(source, language);
   }, [dispatch, language, recorder, source]);
 
   const stop = useCallback(() => {
+    setExecuted(null);
+    setViewExecuted(false);
     recorder.stop();
     dispatch({ type: 'stop' });
   }, [dispatch, recorder]);
@@ -271,10 +280,28 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
   );
 
   const hasTrace = !!trace && pbStatus !== 'recording';
-  const activeLine = hasTrace ? current.currentLine : null;
+  const sourceChanged =
+    !!executed && (source !== executed.source || language !== executed.language);
+  const showingExecuted = viewExecuted && sourceChanged;
+  const activeLine = hasTrace && (!sourceChanged || showingExecuted) ? current.currentLine : null;
 
   const editor = (
-    <CodeEditor value={source} onChange={setSource} activeLine={activeLine} language={language} />
+    <CodeEditor
+      key={showingExecuted ? 'executed' : 'draft'}
+      value={showingExecuted ? executed!.source : source}
+      onChange={(value) => {
+        dispatch({ type: 'pause' });
+        setSource(value);
+      }}
+      activeLine={activeLine}
+      language={showingExecuted ? executed!.language : language}
+      readOnly={showingExecuted}
+      ariaLabel={
+        showingExecuted
+          ? 'Executed code (read-only)'
+          : `${language === 'typescript' ? 'TypeScript' : 'JavaScript'} code editor`
+      }
+    />
   );
 
   const settings = (
@@ -339,9 +366,68 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
     />
   );
 
+  const consoleResizeHandle = consoleOpen && (
+    <ResizeHandle
+      orientation="horizontal"
+      label="Resize console"
+      valueNow={consoleHeight}
+      valueMin={CONSOLE_MIN}
+      valueMax={CONSOLE_MAX}
+      onPointerDelta={resizeConsole}
+      onDecrease={() => setConsoleHeight((value) => clamp(value - 16, CONSOLE_MIN, CONSOLE_MAX))}
+      onIncrease={() => setConsoleHeight((value) => clamp(value + 16, CONSOLE_MIN, CONSOLE_MAX))}
+      onMinimum={() => setConsoleHeight(CONSOLE_MIN)}
+      onMaximum={() => setConsoleHeight(CONSOLE_MAX)}
+    />
+  );
+
+  const consoleDrawer = (
+    <div
+      className="as-console-drawer min-h-0 shrink-0"
+      style={{ height: consoleOpen ? consoleHeight : 34 }}
+    >
+      {consoleOpen ? (
+        <ConsolePanel lines={current.console} onCollapse={() => setConsoleOpen(false)} />
+      ) : (
+        <button
+          type="button"
+          className="as-console-collapsed flex h-full w-full items-center gap-2 border px-3 text-left text-[11px] font-semibold tracking-wider uppercase"
+          onClick={() => setConsoleOpen(true)}
+          aria-label="Expand console"
+          aria-expanded="false"
+        >
+          <span>Console</span>
+          <span className="as-badge rounded-full px-2 py-0.5 text-[10px] tabular-nums">
+            {current.console.length}
+          </span>
+          <span className="ml-auto" aria-hidden="true">
+            ▲
+          </span>
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="as-workbench-shell flex min-h-0 min-w-0 flex-1 flex-col">
       <Controls playback={playback} onRun={run} onStop={stop} settings={settings} />
+
+      {sourceChanged && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-1 text-[12px]">
+          <p role="status" className="min-w-0 flex-1">
+            {showingExecuted
+              ? `Viewing executed ${executed!.language === 'typescript' ? 'TypeScript' : 'JavaScript'} (read-only). Your edits are preserved.`
+              : 'Code or language changed. Playback and errors belong to the previous execution. Run to update.'}
+          </p>
+          <button
+            type="button"
+            className="as-btn rounded-md border px-2 py-1"
+            onClick={() => setViewExecuted((value) => !value)}
+          >
+            {showingExecuted ? 'Back to edits' : 'View executed code'}
+          </button>
+        </div>
+      )}
 
       {compileError && (
         <div className="as-error-banner shrink-0 border px-3 py-1.5" role="alert">
@@ -430,7 +516,11 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
             className="as-desktop-split grid h-full min-h-0"
             style={{ gridTemplateColumns: `${editorPercent}% 10px minmax(0, 1fr)` }}
           >
-            <div className="as-editor-frame min-h-0 min-w-0">{editor}</div>
+            <div className="as-editor-column flex min-h-0 min-w-0 flex-col">
+              <div className="as-editor-frame min-h-0 flex-1">{editor}</div>
+              {consoleResizeHandle}
+              {consoleDrawer}
+            </div>
             <ResizeHandle
               orientation="vertical"
               label="Resize code editor and runtime"
@@ -461,48 +551,8 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
         )}
       </div>
 
-      {consoleOpen && (
-        <ResizeHandle
-          orientation="horizontal"
-          label="Resize console"
-          valueNow={consoleHeight}
-          valueMin={CONSOLE_MIN}
-          valueMax={CONSOLE_MAX}
-          onPointerDelta={resizeConsole}
-          onDecrease={() =>
-            setConsoleHeight((value) => clamp(value - 16, CONSOLE_MIN, CONSOLE_MAX))
-          }
-          onIncrease={() =>
-            setConsoleHeight((value) => clamp(value + 16, CONSOLE_MIN, CONSOLE_MAX))
-          }
-          onMinimum={() => setConsoleHeight(CONSOLE_MIN)}
-          onMaximum={() => setConsoleHeight(CONSOLE_MAX)}
-        />
-      )}
-      <div
-        className="as-console-drawer min-h-0 shrink-0"
-        style={{ height: consoleOpen ? consoleHeight : 34 }}
-      >
-        {consoleOpen ? (
-          <ConsolePanel lines={current.console} onCollapse={() => setConsoleOpen(false)} />
-        ) : (
-          <button
-            type="button"
-            className="as-console-collapsed flex h-full w-full items-center gap-2 border px-3 text-left text-[11px] font-semibold tracking-wider uppercase"
-            onClick={() => setConsoleOpen(true)}
-            aria-label="Expand console"
-            aria-expanded="false"
-          >
-            <span>Console</span>
-            <span className="as-badge rounded-full px-2 py-0.5 text-[10px] tabular-nums">
-              {current.console.length}
-            </span>
-            <span className="ml-auto" aria-hidden="true">
-              ▲
-            </span>
-          </button>
-        )}
-      </div>
+      {!isDesktop && consoleResizeHandle}
+      {!isDesktop && consoleDrawer}
     </div>
   );
 }
