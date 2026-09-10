@@ -63,7 +63,7 @@ for (const viewport of desktopViewports) {
       .poll(() => page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1))
       .toBe(true);
 
-    const editor = await page.locator('.as-desktop-split > .as-editor-frame').boundingBox();
+    const editor = await page.locator('.as-desktop-split > .as-editor-column').boundingBox();
     const runtime = await page.locator('.as-runtime-grid').boundingBox();
     expect(editor).not.toBeNull();
     expect(runtime).not.toBeNull();
@@ -71,6 +71,33 @@ for (const viewport of desktopViewports) {
     expect(editor!.width / (editor!.width + runtime!.width)).toBeLessThan(0.43);
   });
 }
+
+test('desktop console follows the editor width without covering the timeline', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+
+  const editorColumn = page.locator('.as-editor-column');
+  const consoleDrawer = editorColumn.locator('.as-console-drawer');
+  const timeline = page.getByRole('region', { name: /execution timeline/i });
+  const splitter = page.getByRole('separator', { name: 'Resize code editor and runtime' });
+
+  const initialEditor = await editorColumn.boundingBox();
+  const initialConsole = await consoleDrawer.boundingBox();
+  const initialTimeline = await timeline.boundingBox();
+  expect(initialEditor).not.toBeNull();
+  expect(initialConsole).not.toBeNull();
+  expect(initialTimeline).not.toBeNull();
+  expect(Math.abs(initialConsole!.width - initialEditor!.width)).toBeLessThanOrEqual(1);
+  expect(initialConsole!.x + initialConsole!.width).toBeLessThanOrEqual(initialTimeline!.x);
+
+  await splitter.focus();
+  await splitter.press('End');
+
+  const resizedEditor = await editorColumn.boundingBox();
+  const resizedConsole = await consoleDrawer.boundingBox();
+  expect(resizedEditor!.width).toBeGreaterThan(initialEditor!.width);
+  expect(Math.abs(resizedConsole!.width - resizedEditor!.width)).toBeLessThanOrEqual(1);
+});
 
 test('editor splitter is keyboard accessible and persists its limit', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

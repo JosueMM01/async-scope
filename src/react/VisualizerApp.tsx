@@ -366,6 +366,48 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
     />
   );
 
+  const consoleResizeHandle = consoleOpen && (
+    <ResizeHandle
+      orientation="horizontal"
+      label="Resize console"
+      valueNow={consoleHeight}
+      valueMin={CONSOLE_MIN}
+      valueMax={CONSOLE_MAX}
+      onPointerDelta={resizeConsole}
+      onDecrease={() => setConsoleHeight((value) => clamp(value - 16, CONSOLE_MIN, CONSOLE_MAX))}
+      onIncrease={() => setConsoleHeight((value) => clamp(value + 16, CONSOLE_MIN, CONSOLE_MAX))}
+      onMinimum={() => setConsoleHeight(CONSOLE_MIN)}
+      onMaximum={() => setConsoleHeight(CONSOLE_MAX)}
+    />
+  );
+
+  const consoleDrawer = (
+    <div
+      className="as-console-drawer min-h-0 shrink-0"
+      style={{ height: consoleOpen ? consoleHeight : 34 }}
+    >
+      {consoleOpen ? (
+        <ConsolePanel lines={current.console} onCollapse={() => setConsoleOpen(false)} />
+      ) : (
+        <button
+          type="button"
+          className="as-console-collapsed flex h-full w-full items-center gap-2 border px-3 text-left text-[11px] font-semibold tracking-wider uppercase"
+          onClick={() => setConsoleOpen(true)}
+          aria-label="Expand console"
+          aria-expanded="false"
+        >
+          <span>Console</span>
+          <span className="as-badge rounded-full px-2 py-0.5 text-[10px] tabular-nums">
+            {current.console.length}
+          </span>
+          <span className="ml-auto" aria-hidden="true">
+            ▲
+          </span>
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="as-workbench-shell flex min-h-0 min-w-0 flex-1 flex-col">
       <Controls playback={playback} onRun={run} onStop={stop} settings={settings} />
@@ -474,7 +516,11 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
             className="as-desktop-split grid h-full min-h-0"
             style={{ gridTemplateColumns: `${editorPercent}% 10px minmax(0, 1fr)` }}
           >
-            <div className="as-editor-frame min-h-0 min-w-0">{editor}</div>
+            <div className="as-editor-column flex min-h-0 min-w-0 flex-col">
+              <div className="as-editor-frame min-h-0 flex-1">{editor}</div>
+              {consoleResizeHandle}
+              {consoleDrawer}
+            </div>
             <ResizeHandle
               orientation="vertical"
               label="Resize code editor and runtime"
@@ -505,48 +551,8 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
         )}
       </div>
 
-      {consoleOpen && (
-        <ResizeHandle
-          orientation="horizontal"
-          label="Resize console"
-          valueNow={consoleHeight}
-          valueMin={CONSOLE_MIN}
-          valueMax={CONSOLE_MAX}
-          onPointerDelta={resizeConsole}
-          onDecrease={() =>
-            setConsoleHeight((value) => clamp(value - 16, CONSOLE_MIN, CONSOLE_MAX))
-          }
-          onIncrease={() =>
-            setConsoleHeight((value) => clamp(value + 16, CONSOLE_MIN, CONSOLE_MAX))
-          }
-          onMinimum={() => setConsoleHeight(CONSOLE_MIN)}
-          onMaximum={() => setConsoleHeight(CONSOLE_MAX)}
-        />
-      )}
-      <div
-        className="as-console-drawer min-h-0 shrink-0"
-        style={{ height: consoleOpen ? consoleHeight : 34 }}
-      >
-        {consoleOpen ? (
-          <ConsolePanel lines={current.console} onCollapse={() => setConsoleOpen(false)} />
-        ) : (
-          <button
-            type="button"
-            className="as-console-collapsed flex h-full w-full items-center gap-2 border px-3 text-left text-[11px] font-semibold tracking-wider uppercase"
-            onClick={() => setConsoleOpen(true)}
-            aria-label="Expand console"
-            aria-expanded="false"
-          >
-            <span>Console</span>
-            <span className="as-badge rounded-full px-2 py-0.5 text-[10px] tabular-nums">
-              {current.console.length}
-            </span>
-            <span className="ml-auto" aria-hidden="true">
-              ▲
-            </span>
-          </button>
-        )}
-      </div>
+      {!isDesktop && consoleResizeHandle}
+      {!isDesktop && consoleDrawer}
     </div>
   );
 }
