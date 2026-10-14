@@ -4,7 +4,7 @@
  * Owns: editor source, recorder (worker) lifecycle, playback state machine and
  * the responsive layout (panels on desktop, tabs on small screens).
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 // Deep imports keep the Babel pipeline out of the main chunk (worker-only).
 import { DEFAULT_EXAMPLE_ID, EXAMPLES, getExample } from '../engine/examples';
 import type { SourceLanguage, TraceEvent } from '../engine/types';
@@ -248,6 +248,15 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
   }, [exampleId]);
 
   const { current, compileError, status: pbStatus, trace } = playback;
+  const recordedLimit = useMemo(
+    () =>
+      trace?.find(
+        (event): event is Extract<TraceEvent, { type: 'error' }> =>
+          event.type === 'error' && event.kind === 'limit',
+      ),
+    [trace],
+  );
+  const bannerError = compileError ?? recordedLimit;
   const [mobileTab, setMobileTab] = useState<MobileTab>('editor');
   const isDesktop = useIsDesktop();
 
@@ -429,19 +438,21 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
         </div>
       )}
 
-      {compileError && (
+      {bannerError && (
         <div className="as-error-banner shrink-0 border px-3 py-1.5" role="alert">
           <p className="font-semibold">
-            {compileError.phase === 'syntax'
-              ? 'Syntax error'
-              : compileError.phase === 'unsupported'
-                ? 'Unsupported feature'
-                : 'Execution error'}
-            {compileError.line !== null && (
-              <span className="font-mono opacity-80"> — line {compileError.line}</span>
+            {!compileError
+              ? 'Execution limit reached'
+              : compileError.phase === 'syntax'
+                ? 'Syntax error'
+                : compileError.phase === 'unsupported'
+                  ? 'Unsupported feature'
+                  : 'Execution error'}
+            {bannerError.line != null && (
+              <span className="font-mono opacity-80"> — line {bannerError.line}</span>
             )}
           </p>
-          <p className="mt-0.5 text-[13px] opacity-90">{compileError.message}</p>
+          <p className="mt-0.5 text-[13px] opacity-90">{bannerError.message}</p>
         </div>
       )}
 

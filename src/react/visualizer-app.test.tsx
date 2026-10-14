@@ -1,6 +1,6 @@
 /** VisualizerApp integration-lite tests with a mocked recorder. */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { VisualizerApp } from './VisualizerApp';
 import { useRecorder } from './useRecorder';
@@ -137,6 +137,56 @@ describe('VisualizerApp', () => {
         (el) => el.textContent,
       );
       expect(lineTexts).toEqual(['A', 'C', 'B']);
+    },
+  );
+
+  it.each([
+    ['null.x;', 'TypeError'],
+    ['missingValue;', 'ReferenceError'],
+    ["throw '<img src=x onerror=alert(1)>';", 'Uncaught <img'],
+    ['Promise.reject("rejected");', 'Uncaught (in promise)'],
+    ['setTimeout(() => { throw new Error("timer"); }, 0);', 'Error: timer'],
+  ])('shows runtime failure safely in the console: %s', async (source, message) => {
+    mockRecorder({
+      run: (_code, _language, cbs) => {
+        const outcome = executeProgram(source);
+        if (!outcome.ok) throw new Error(outcome.error.message);
+        cbs.onTrace(outcome.events);
+      },
+    });
+    const user = userEvent.setup();
+    render(<VisualizerApp />);
+    await user.click(screen.getByRole('button', { name: /expand console/i }));
+    await user.click(screen.getByRole('button', { name: /run/i }));
+    fireEvent.change(screen.getByLabelText('Playback position'), { target: { value: 99999 } });
+    const region = screen.getByRole('region', { name: /console output/i });
+    expect(region).toHaveTextContent(message);
+    expect(region.querySelector('.as-console-error')).not.toBeNull();
+    expect(region.querySelector('img')).toBeNull();
+    expect(screen.getByText('Finished with errors')).toHaveClass('as-status-error');
+    await user.click(screen.getByRole('button', { name: /restart/i }));
+    expect(region.querySelectorAll('.as-console-line')).toHaveLength(0);
+    expect(screen.queryByText('Finished with errors')).not.toBeInTheDocument();
+  });
+
+  it.each(['while (true) {}', 'for (let i=0; i<1000; i++) console.log(i);'])(
+    'shows limits in the error banner: %s',
+    async (source) => {
+      mockRecorder({
+        run: (_code, _language, cbs) => {
+          const outcome = executeProgram(source);
+          if (!outcome.ok) throw new Error(outcome.error.message);
+          cbs.onTrace(outcome.events);
+        },
+      });
+      const user = userEvent.setup();
+      render(<VisualizerApp />);
+      await user.click(screen.getByRole('button', { name: /run/i }));
+      fireEvent.change(screen.getByLabelText('Playback position'), { target: { value: 99999 } });
+      expect(screen.getByRole('alert')).toHaveTextContent('Execution limit reached');
+      expect(screen.getByRole('alert')).toHaveClass('as-error-banner');
+      await user.click(screen.getByRole('button', { name: /stop/i }));
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     },
   );
 

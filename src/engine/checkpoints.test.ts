@@ -6,6 +6,27 @@ import { createTraceIndex, MAX_CHECKPOINTS } from './trace/checkpoints';
 import type { TraceEvent } from './types';
 
 describe('checkpoint trace index', () => {
+  it('preserves each error in console order across seeks without changing the trace', () => {
+    const outcome = executeProgram(
+      'console.log("before"); setTimeout(() => { throw new Error("timer"); }, 0); Promise.reject("rejected"); throw "sync";',
+    );
+    if (!outcome.ok) throw new Error(outcome.error.message);
+    const original = structuredClone(outcome.events);
+    const expected = buildStates(outcome.events);
+    const index = createTraceIndex(outcome.events);
+    for (let cursor = 0; cursor < expected.length; cursor++) {
+      expect(index.at(cursor)).toEqual(expected[cursor]);
+      expect(index.at(expected.length - cursor - 1)).toEqual(expected.at(-cursor - 1));
+    }
+    expect(index.at(outcome.events.length).console.map((line) => [line.level, line.text])).toEqual([
+      ['log', 'before'],
+      ['error', 'Uncaught sync'],
+      ['error', 'Error: timer'],
+      ['error', 'Uncaught (in promise) Uncaught rejected'],
+    ]);
+    expect(outcome.events).toEqual(original);
+  });
+
   for (const example of EXAMPLES) {
     it(`reconstructs every snapshot forward and backward: ${example.name}`, () => {
       const outcome = executeProgram(example.code, { language: example.language });

@@ -25,6 +25,8 @@ export class UnsupportedFeatureError extends Error {
  */
 const BLOCKED_GLOBALS: Record<string, string> = {
   __AS__: 'the AsyncScope runtime is internal',
+  require: 'this is a Node.js API and is not available in the sandbox',
+  process: 'this is a Node.js API and is not available in the sandbox',
   // network
   fetch: 'network requests are disabled',
   XMLHttpRequest: 'network requests are disabled',
@@ -54,12 +56,12 @@ const BLOCKED_GLOBALS: Record<string, string> = {
   sessionStorage: 'storage APIs are disabled',
   crypto: 'the Web Crypto API is not available in the sandbox',
   // rendering pipeline (Phase 3)
-  requestAnimationFrame: 'the rendering pipeline is not supported in Phase 1',
-  requestIdleCallback: 'the rendering pipeline is not supported in Phase 1',
+  requestAnimationFrame: 'the rendering pipeline is not yet supported',
+  requestIdleCallback: 'the rendering pipeline is not yet supported',
   // DOM events (Phase 3)
-  addEventListener: 'DOM events are not supported in Phase 1',
-  removeEventListener: 'DOM events are not supported in Phase 1',
-  dispatchEvent: 'DOM events are not supported in Phase 1',
+  addEventListener: 'DOM events are not yet supported',
+  removeEventListener: 'DOM events are not yet supported',
+  dispatchEvent: 'DOM events are not yet supported',
   // dynamic code / powerful natives that bypass the sandbox model
   eval: 'eval is disabled in the sandbox',
   Function: 'dynamic code generation is disabled',
@@ -80,17 +82,17 @@ export function scanForUnsupportedFeatures(ast: t.Node): void {
   traverse(ast, {
     ForOfStatement(path) {
       if (path.node.await) {
-        unsupported('for await…of loops are not supported in Phase 1', path.node);
+        unsupported('for await…of loops are not yet supported', path.node);
       }
     },
     Function(path) {
       const node = path.node as t.Function;
       if (node.generator) {
-        unsupported('generator functions (function*) are not supported in Phase 1', path.node);
+        unsupported('generator functions (function*) are not yet supported', path.node);
       }
     },
     YieldExpression(path) {
-      unsupported('yield is not supported in Phase 1', path.node);
+      unsupported('yield is not yet supported', path.node);
     },
     CallExpression(path) {
       if (path.node.callee.type === 'Import') {

@@ -8,6 +8,13 @@
 import type { ApiTimer, ConsoleLine, TaskItem, TraceEvent, VisualizationState } from '../types';
 import { eventToTimelineEntry } from './messages';
 
+/** Render errors as inert console text without adding events to the bounded trace. */
+export function eventToConsoleLine(event: TraceEvent, id: number): ConsoleLine | null {
+  if (event.type === 'console') return { id, level: event.level, text: event.text };
+  if (event.type === 'error') return { id, level: 'error', text: event.message };
+  return null;
+}
+
 export function initialVisualizationState(): VisualizationState {
   return {
     status: 'running',
@@ -100,6 +107,7 @@ export function reduceVisualizationState(
       return {
         ...state,
         error: { message: event.message, kind: event.kind, line: event.line },
+        console: [...state.console, eventToConsoleLine(event, ++counters.console)!],
       };
   }
 }
