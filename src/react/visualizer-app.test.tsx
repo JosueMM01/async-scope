@@ -126,6 +126,8 @@ describe('VisualizerApp', () => {
       await user.click(screen.getByRole('button', { name: /expand console/i }));
       const region = screen.getByRole('region', { name: /console output/i });
       await user.click(screen.getByRole('button', { name: /run/i }));
+      // Run pauses at the first step by design; resume to play through.
+      await user.click(screen.getByRole('button', { name: /resume/i }));
       await waitFor(
         () => {
           expect(region).toHaveTextContent('B');
@@ -223,6 +225,7 @@ describe('VisualizerApp', () => {
     await user.selectOptions(screen.getByLabelText('Examples'), 'settimeout');
     await user.selectOptions(screen.getByLabelText('Speed'), '4');
     await user.click(screen.getByRole('button', { name: /run/i }));
+    await user.click(screen.getByRole('button', { name: /resume/i }));
     await user.click(screen.getByRole('tab', { name: 'Timeline' }));
     const region = screen.getByRole('region', { name: /execution timeline/i });
     await waitFor(

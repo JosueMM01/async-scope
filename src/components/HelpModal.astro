@@ -1,0 +1,243 @@
+---
+/**
+ * HelpModal: the Help button and its modal dialog.
+ *
+ * A native <dialog> opened with showModal() keeps the workbench inert while
+ * it is open, closes with Esc, and traps focus inside the modal. The script
+ * below additionally locks page scrolling while the dialog is open and
+ * returns focus to the Help button when it closes. All external links point
+ * to MDN Web Docs and open in a new tab; nothing is fetched from MDN by
+ * this page itself.
+ */
+const MDN = 'https://developer.mozilla.org/en-US/docs';
+const LINKS = {
+  eventLoop: `${MDN}/Web/JavaScript/Event_loop`,
+  callStack: `${MDN}/Glossary/Call_stack`,
+  microtasks: `${MDN}/Web/API/HTML_DOM_API/Microtask_guide`,
+  consoleApi: `${MDN}/Web/API/console`,
+  let: `${MDN}/Web/JavaScript/Reference/Statements/let`,
+  const: `${MDN}/Web/JavaScript/Reference/Statements/const`,
+  arrow: `${MDN}/Web/JavaScript/Reference/Functions/Arrow_functions`,
+  setTimeout: `${MDN}/Web/API/Window/setTimeout`,
+  setInterval: `${MDN}/Web/API/Window/setInterval`,
+  clearTimeout: `${MDN}/Web/API/Window/clearTimeout`,
+  clearInterval: `${MDN}/Web/API/Window/clearInterval`,
+  promise: `${MDN}/Web/JavaScript/Reference/Global_Objects/Promise`,
+  promiseAll: `${MDN}/Web/JavaScript/Reference/Global_Objects/Promise/all`,
+  promiseRace: `${MDN}/Web/JavaScript/Reference/Global_Objects/Promise/race`,
+  asyncFunction: `${MDN}/Web/JavaScript/Reference/Statements/async_function`,
+  await: `${MDN}/Web/JavaScript/Reference/Operators/await`,
+  queueMicrotask: `${MDN}/Web/API/Window/queueMicrotask`,
+  tryCatch: `${MDN}/Web/JavaScript/Reference/Statements/try...catch`,
+} as const;
+---
+
+<button
+  type="button"
+  id="as-help-open"
+  class="as-btn cursor-pointer rounded-md border px-2.5 py-1.5 text-[12px] font-semibold"
+  aria-haspopup="dialog"
+>
+  Help
+</button>
+
+<dialog id="as-help-dialog" class="as-help-dialog" aria-labelledby="as-help-title">
+  <div class="as-help-dialog-head flex shrink-0 items-center justify-between gap-3 px-4 py-3">
+    <h2 id="as-help-title" class="text-sm font-bold">How AsyncScope works</h2>
+    <button
+      type="button"
+      id="as-help-close"
+      class="as-btn cursor-pointer rounded-md border px-2 py-1 text-[12px] font-semibold"
+      aria-label="Close help"
+    >
+      ✕ Close
+    </button>
+  </div>
+
+  <div class="as-help-dialog-body min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+    <section aria-labelledby="as-help-use">
+      <h3 id="as-help-use" class="as-help-heading">How to use it</h3>
+      <ol class="as-help-list">
+        <li>
+          <strong>1.</strong> Pick an example or write your own JavaScript or TypeScript.
+        </li>
+        <li>
+          <strong>2.</strong> Press <strong>Run</strong>. It records the execution and pauses at the
+          first step, so you do not miss the beginning.
+        </li>
+        <li>
+          <strong>3.</strong> Press <strong>Resume</strong> to play, or <strong>Next</strong> to step
+          through the call stack, queues and event loop one step at a time.
+        </li>
+      </ol>
+      <p class="as-help-note">
+        Shortcuts: <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Enter</kbd> Run,
+        <kbd>Space</kbd> Resume/Pause, <kbd>→</kbd>/<kbd>←</kbd> step forward/back.
+      </p>
+    </section>
+
+    <section aria-labelledby="as-help-panels">
+      <h3 id="as-help-panels" class="as-help-heading">What you are watching</h3>
+      <ul class="as-help-list">
+        <li>
+          <strong>Call Stack</strong> — the functions currently running, topmost last.
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.callStack}>Call stack on MDN</a>
+        </li>
+        <li>
+          <strong>Event Loop</strong> — picks the next task only when the stack is empty, after draining
+          microtasks.
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.eventLoop}>Event loop on MDN</a>
+        </li>
+        <li>
+          <strong>Microtask Queue</strong> — promise callbacks and <code>queueMicrotask</code>;
+          always drains before the next task.
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.microtasks}
+            >Microtask guide on MDN</a
+          >
+        </li>
+        <li>
+          <strong>Task Queue</strong> — timer callbacks waiting for their turn.
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.eventLoop}>Event loop on MDN</a>
+        </li>
+        <li>
+          <strong>Browser APIs</strong> — pending timers, with their remaining virtual time.
+        </li>
+        <li>
+          <strong>Console</strong> — what your code prints, in order.
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.consoleApi}>console on MDN</a>
+        </li>
+        <li>
+          <strong>Timeline</strong> — every step as a clickable list; click any step to jump to it.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="as-help-supported">
+      <h3 id="as-help-supported" class="as-help-heading">Supported JavaScript</h3>
+      <p>Everything runs in an isolated worker in this browser. These work:</p>
+      <ul class="as-help-list">
+        <li>
+          Variables with <a target="_blank" rel="noopener noreferrer" href={LINKS.let}
+            ><code>let</code></a
+          > and
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.const}><code>const</code></a>,
+          functions and
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.arrow}>arrow functions</a>.
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.setTimeout}
+            ><code>setTimeout</code></a
+          > /
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.clearTimeout}
+            ><code>clearTimeout</code></a
+          > and
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.setInterval}
+            ><code>setInterval</code></a
+          > /
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.clearInterval}
+            ><code>clearInterval</code></a
+          >.
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.promise}><code>Promise</code></a
+          >,
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.promiseAll}
+            ><code>Promise.all</code></a
+          >,
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.promiseRace}
+            ><code>Promise.race</code></a
+          >,
+          <code>.then</code> / <code>.catch</code>.
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.asyncFunction}
+            ><code>async</code> functions</a
+          >,
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.await}><code>await</code></a> and
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.tryCatch}
+            ><code>try / catch</code></a
+          > around awaited promises.
+        </li>
+        <li>
+          <a target="_blank" rel="noopener noreferrer" href={LINKS.queueMicrotask}
+            ><code>queueMicrotask</code></a
+          > and
+          <code>console.log / warn / error</code>.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="as-help-not-supported">
+      <h3 id="as-help-not-supported" class="as-help-heading">Not supported (by design)</h3>
+      <p>
+        The sandbox keeps execution deterministic and safe, so these are rejected before running:
+      </p>
+      <ul class="as-help-list">
+        <li>Network: <code>fetch</code>, <code>XMLHttpRequest</code>, WebSocket.</li>
+        <li>
+          DOM and browser chrome: <code>document</code>, <code>window</code>, storage, dialogs.
+        </li>
+        <li>
+          Modules: <code>import</code> / <code>export</code> and dynamic <code>import()</code>.
+        </li>
+        <li>
+          Generators (<code>function*</code>, <code>yield</code>) and
+          <code>for await...of</code> loops.
+        </li>
+        <li>
+          Node.js APIs such as <code>require</code> and <code>process</code>, <code>eval</code>
+          and dynamic code.
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="as-help-limits">
+      <h3 id="as-help-limits" class="as-help-heading">Limits to keep in mind</h3>
+      <ul class="as-help-list">
+        <li>Timing is virtual and deterministic — it teaches ordering, not real performance.</li>
+        <li>Traces are capped at 2000 events; endless loops and runaway intervals are stopped.</li>
+        <li>
+          TypeScript types are erased before execution. There is no type checking in the browser; a
+          wrong annotation can disappear and still run.
+        </li>
+        <li>Your code never leaves this browser: no account, no server, nothing is uploaded.</li>
+      </ul>
+      <p class="as-help-note">All links in this help open MDN Web Docs in a new tab.</p>
+    </section>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.getElementById('as-help-dialog');
+  const openButton = document.getElementById('as-help-open');
+  const closeButton = document.getElementById('as-help-close');
+  if (dialog instanceof HTMLDialogElement && openButton && closeButton) {
+    const lockScroll = () => {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    };
+    const unlockScroll = () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
+    openButton.addEventListener('click', () => {
+      if (!dialog.open) {
+        dialog.showModal();
+        lockScroll();
+        closeButton.focus();
+      }
+    });
+    const close = () => {
+      if (dialog.open) dialog.close();
+    };
+    closeButton.addEventListener('click', close);
+    // Clicking the dimmed backdrop (outside the dialog box) closes it.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) close();
+    });
+    dialog.addEventListener('close', () => {
+      unlockScroll();
+      openButton.focus();
+    });
+  }
+</script>

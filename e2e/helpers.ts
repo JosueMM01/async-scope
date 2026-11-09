@@ -12,12 +12,17 @@ export async function setEditorCode(page: Page, code: string): Promise<void> {
   await page.keyboard.type(code, { delay: 0 });
 }
 
-/** Clicks Run, sets the given speed and waits for the run to finish. */
+/** Clicks Run, resumes from the paused-at-start state, and waits for the run to finish. */
 export async function runAndWait(page: Page, speed = '4'): Promise<void> {
   await expect(page.locator(EDITOR)).toBeVisible();
   await page.getByLabel('Speed').selectOption(speed);
   await page.getByRole('button', { name: 'Run (Ctrl+Enter)' }).click();
-  await expect(page.locator('.as-status')).toContainText(/Finished|Paused at start|Error/, {
+  // Run records the trace and pauses at the first step by design.
+  await expect(page.locator('.as-status')).toContainText(/Paused at start/, {
+    timeout: 30_000,
+  });
+  await page.getByRole('button', { name: 'Resume (Space)' }).click();
+  await expect(page.locator('.as-status')).toContainText(/Finished|Error/, {
     timeout: 30_000,
   });
 }
