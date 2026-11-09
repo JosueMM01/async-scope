@@ -203,9 +203,11 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
     return () => clearTimeout(id);
   }, [status, cursor, stepIntervalMs, dispatch]);
 
-  // Global keyboard shortcuts (skipped while typing in the editor or a field).
+  // Global keyboard shortcuts (skipped while typing in the editor or a field,
+  // and while the Help modal is open so Space/arrows do not step playback).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (document.querySelector('dialog[open]')) return;
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
         event.preventDefault();
         run();
@@ -313,6 +315,9 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
     />
   );
 
+  // The editor no longer matches the selected preset once the user edits it.
+  const isCustomCode = source !== getExample(exampleId).code;
+
   const settings = (
     <div className="as-settings flex min-w-0 items-center gap-1.5">
       <label className="sr-only" htmlFor="as-example">
@@ -323,15 +328,28 @@ function VisualizerWorkbench({ loadStored }: { loadStored: boolean }) {
         aria-label="Examples"
         title={getExample(exampleId).description}
         className="as-select min-w-0 rounded-md border px-2 py-1 text-[12px]"
-        value={exampleId}
-        onChange={(event) => applyExample(event.target.value)}
+        value={isCustomCode ? 'custom' : exampleId}
+        onChange={(event) => {
+          if (event.target.value !== 'custom') applyExample(event.target.value);
+        }}
       >
         {EXAMPLES.map((example) => (
           <option key={example.id} value={example.id}>
             {example.name}
           </option>
         ))}
+        <option value="custom" disabled>
+          Custom code
+        </option>
       </select>
+      {isCustomCode && (
+        <span
+          className="as-custom-badge shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase"
+          title="You edited the code — this is no longer the selected example"
+        >
+          Custom
+        </span>
+      )}
       <label className="sr-only" htmlFor="as-language">
         Language
       </label>

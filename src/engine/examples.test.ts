@@ -60,4 +60,34 @@ describe('examples', () => {
       ]);
     }
   });
+
+  it('setInterval example ticks 3 times then stops', () => {
+    const outcome = executeProgram(getExample('setinterval').code);
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(consoleText(outcome.events)).toEqual([
+        'started',
+        'tick 1',
+        'tick 2',
+        'tick 3',
+        'stopped',
+      ]);
+    }
+  });
+
+  it('Promise.all example waits for the slowest input', () => {
+    const outcome = executeProgram(getExample('promise-all').code);
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(consoleText(outcome.events)).toEqual(['waiting', 'all: 1,2,3']);
+    }
+  });
+
+  it('async error example is caught and execution continues', () => {
+    const outcome = executeProgram(getExample('async-error').code);
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(consoleText(outcome.events)).toEqual(['started', 'caught: oops', 'continues']);
+    }
+  });
 });

@@ -211,6 +211,69 @@ console.log("2b: sync end");
 `,
   },
   {
+    id: 'setinterval',
+    name: 'setInterval',
+    language: 'javascript',
+    description:
+      'The callback repeats as a task until clearInterval stops it — watch it re-arm in Browser APIs.',
+    code: `let count = 0;
+
+const id = setInterval(() => {
+  count++;
+  console.log("tick", count);
+  if (count === 3) {
+    clearInterval(id);
+    console.log("stopped");
+  }
+}, 50);
+
+console.log("started");
+`,
+  },
+  {
+    id: 'promise-all',
+    name: 'Promise.all',
+    language: 'javascript',
+    description:
+      'Waits for every promise at once; the .then callback runs only after the slowest one.',
+    code: `Promise.all([
+  Promise.resolve(1),
+  new Promise((resolve) => {
+    setTimeout(() => resolve(2), 20);
+  }),
+  Promise.resolve(3),
+]).then((values) => {
+  console.log("all:", values.join(","));
+});
+
+console.log("waiting");
+`,
+  },
+  {
+    id: 'async-error',
+    name: 'async / await error handling',
+    language: 'javascript',
+    description:
+      'A rejected await throws inside the async function, so try/catch can handle it like sync code.',
+    code: `async function risky() {
+  throw new Error("oops");
+}
+
+async function main() {
+  try {
+    await risky();
+    console.log("never reached");
+  } catch (e) {
+    console.log("caught:", e.message);
+  }
+  console.log("continues");
+}
+
+main();
+console.log("started");
+`,
+  },
+  {
     id: 'typescript-async-flow',
     name: 'TypeScript async flow',
     language: 'typescript',

@@ -162,6 +162,8 @@ test('manual editor navigation disables follow and survives the next snapshot', 
   await setEditorCode(page, code);
   await page.getByLabel('Speed').selectOption('4');
   await page.getByRole('button', { name: 'Run (Ctrl+Enter)' }).click();
+  await expect(page.locator('.as-status')).toContainText(/paused at start/i);
+  await page.getByRole('button', { name: /resume/i }).click();
   await expect(page.getByRole('button', { name: /pause/i })).toBeEnabled();
   await page.getByRole('button', { name: /pause/i }).click();
 

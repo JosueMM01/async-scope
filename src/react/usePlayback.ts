@@ -64,8 +64,10 @@ export function playbackReducer(state: PlaybackState, action: PlaybackAction): P
         },
       };
     case 'run-complete': {
-      // Run auto-plays from the first snapshot; Pause is one click away.
-      return { ...state, status: 'playing', trace: action.events, cursor: 0 };
+      // Run records the trace and pauses at the first step, so the learner
+      // can step through from the beginning instead of losing the first
+      // steps to auto-play. Resume (Space) starts playback.
+      return { ...state, status: 'ready', trace: action.events, cursor: 0 };
     }
     case 'play': {
       if (!state.trace || state.trace.length === 0) return state;
