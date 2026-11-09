@@ -98,8 +98,11 @@ test('6 — a rejected promise does not break the app', async ({ page }) => {
   // The unhandled rejection of an un-caught promise is also survivable.
   await setEditorCode(page, 'Promise.reject("nobody listens");\nconsole.log("alive");');
   await runAndWait(page);
-  await expect.poll(() => consoleLines(page)).toEqual(['alive']);
-  await expect(page.locator('.as-tl-error, .as-console-error')).toHaveCount(1, { timeout: 10_000 });
+  await expect
+    .poll(() => consoleLines(page))
+    .toEqual(['alive', 'Uncaught (in promise) Uncaught nobody listens']);
+  await expect(page.locator('.as-console-error')).toHaveCount(1);
+  await expect(page.locator('.as-status')).toHaveText('✖Finished with errors');
 });
 
 test('7 — syntax errors show a clear, recoverable message', async ({ page }) => {

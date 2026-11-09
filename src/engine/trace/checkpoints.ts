@@ -1,5 +1,5 @@
 import type { ConsoleLine, TimelineEntry, TraceEvent, VisualizationState } from '../types';
-import { initialVisualizationState, reduceVisualizationState } from './fold';
+import { eventToConsoleLine, initialVisualizationState, reduceVisualizationState } from './fold';
 import { eventToTimelineEntry } from './messages';
 
 /** Fixed checkpoint count bounds retained queue snapshots even for dense traces. */
@@ -17,10 +17,12 @@ export function createTraceIndex(events: readonly TraceEvent[]) {
   const counters = { console: 0, timeline: 0 };
 
   events.forEach((event, index) => {
-    if (event.type === 'console') {
-      consoleLines.push({ id: consoleLines.length + 1, level: event.level, text: event.text });
-    } else {
+    const consoleLine = eventToConsoleLine(event, consoleLines.length + 1);
+    if (consoleLine) consoleLines.push(consoleLine);
+    if (event.type !== 'console') {
       current = reduceVisualizationState(current, event, counters);
+      // Console history is retained once, outside the queue checkpoints.
+      if (event.type === 'error') current = { ...current, console: [] };
     }
     const entry = eventToTimelineEntry(event, index + 1);
     if (entry) timeline.push(entry);
@@ -57,7 +59,10 @@ export function createTraceIndex(events: readonly TraceEvent[]) {
       let state = checkpoints.get(start)!;
       for (let i = start; i < target; i++) {
         const event = events[i]!;
-        if (event.type !== 'console') state = reduceVisualizationState(state, event, counters);
+        if (event.type !== 'console') {
+          state = reduceVisualizationState(state, event, counters);
+          if (event.type === 'error') state = { ...state, console: [] };
+        }
       }
       return {
         ...state,
