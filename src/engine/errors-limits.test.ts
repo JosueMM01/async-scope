@@ -24,15 +24,30 @@ describe('syntax errors', () => {
     }
   });
 
+  it.each(['await 1;', 'function f() { await 1; }'])('gives an async hint for %s', (source) => {
+    const outcome = executeProgram(source);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.error.phase).toBe('syntax');
+      expect(outcome.error.message).toContain('async function');
+      expect(outcome.error.message).toContain('(async () => { ... })()');
+      expect(outcome.error.message).not.toContain('modules');
+    }
+  });
+
   it('rejects JSX (not supported)', () => {
     const outcome = executeProgram('const x = <div>hi</div>;');
     expect(outcome.ok).toBe(false);
   });
 
-  it('rejects import statements with a syntax error', () => {
+  it('explains that imports are unsupported', () => {
     const outcome = executeProgram('import x from "y";');
     expect(outcome.ok).toBe(false);
-    if (!outcome.ok) expect(outcome.error.phase).toBe('syntax');
+    if (!outcome.ok) {
+      expect(outcome.error.phase).toBe('unsupported');
+      expect(outcome.error.message).toContain('Imports and exports are not supported');
+      expect(outcome.error.message).not.toContain('sourceType');
+    }
   });
 });
 
@@ -64,6 +79,37 @@ describe('unsupported features', () => {
       expect(outcome.error.message).toContain('network');
     }
   });
+
+  it.each(['require("fs");', 'process.nextTick(() => {});'])('explains Node APIs: %s', (source) => {
+    const outcome = executeProgram(source);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.error.phase).toBe('unsupported');
+      expect(outcome.error.message).toContain('Node.js API');
+    }
+  });
+
+  it('allows local bindings named after Node APIs', () => {
+    expect(
+      consoleText(
+        run(
+          'const require = x => x; const process = { nextTick: f => f() }; process.nextTick(() => console.log(require("local")));',
+        ),
+      ),
+    ).toEqual(['local']);
+  });
+
+  it.each(['function* g() { yield 1; }', 'async function f() { for await (const x of []) {} }'])(
+    'does not expose internal phases: %s',
+    (source) => {
+      const outcome = executeProgram(source);
+      expect(outcome.ok).toBe(false);
+      if (!outcome.ok) {
+        expect(outcome.error.message).toContain('not yet supported');
+        expect(outcome.error.message).not.toContain('Phase');
+      }
+    },
+  );
 
   it('blocks eval and Function', () => {
     expect(executeProgram('eval("1+1");').ok).toBe(false);

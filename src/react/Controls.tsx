@@ -15,7 +15,9 @@ const STATUS_LABEL: Record<PlaybackStatus, string> = {
   error: 'Error',
 };
 
-function StatusIcon({ status }: { status: PlaybackStatus }) {
+function StatusIcon({ status, hasErrors }: { status: PlaybackStatus; hasErrors: boolean }) {
+  const finishedWithErrors = status === 'done' && hasErrors;
+  const visualStatus = finishedWithErrors ? 'error' : status;
   // Icon + color + text: state is never communicated by color alone.
   const icon: Record<PlaybackStatus, string> = {
     idle: '◇',
@@ -28,10 +30,10 @@ function StatusIcon({ status }: { status: PlaybackStatus }) {
   };
   return (
     <span
-      className={`as-status as-status-${status} inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold`}
+      className={`as-status as-status-${visualStatus} inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold`}
     >
-      <span aria-hidden="true">{icon[status]}</span>
-      {STATUS_LABEL[status]}
+      <span aria-hidden="true">{icon[visualStatus]}</span>
+      {finishedWithErrors ? 'Finished with errors' : STATUS_LABEL[status]}
     </span>
   );
 }
@@ -165,7 +167,7 @@ export function Controls({ playback, onRun, onStop, settings }: ControlsProps) {
             </option>
           ))}
         </select>
-        <StatusIcon status={status} />
+        <StatusIcon status={status} hasErrors={playback.current.error !== null} />
       </div>
       {settings}
     </div>

@@ -98,8 +98,11 @@ test('6 — a rejected promise does not break the app', async ({ page }) => {
   // The unhandled rejection of an un-caught promise is also survivable.
   await setEditorCode(page, 'Promise.reject("nobody listens");\nconsole.log("alive");');
   await runAndWait(page);
-  await expect.poll(() => consoleLines(page)).toEqual(['alive']);
-  await expect(page.locator('.as-tl-error, .as-console-error')).toHaveCount(1, { timeout: 10_000 });
+  await expect
+    .poll(() => consoleLines(page))
+    .toEqual(['alive', 'Uncaught (in promise) Uncaught nobody listens']);
+  await expect(page.locator('.as-console-error')).toHaveCount(1);
+  await expect(page.locator('.as-status')).toHaveText('✖Finished with errors');
 });
 
 test('7 — syntax errors show a clear, recoverable message', async ({ page }) => {
@@ -118,6 +121,9 @@ test('7 — syntax errors show a clear, recoverable message', async ({ page }) =
 test('8 — infinite execution can be stopped and the sandbox recovers', async ({ page }) => {
   await setEditorCode(page, 'while (true) {}');
   await page.getByRole('button', { name: 'Run (Ctrl+Enter)' }).click();
+  // Run pauses at the first step; resume so the limit error is reached.
+  await expect(page.locator('.as-status')).toContainText(/paused at start/i);
+  await page.getByRole('button', { name: 'Resume (Space)' }).click();
   // The engine's limit error surfaces and the app stays usable.
   await expect(page.locator('.as-tl-error').first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('button', { name: 'Run (Ctrl+Enter)' })).toBeEnabled();
@@ -180,6 +186,10 @@ test('sandbox output is inert text and cannot inject markup into the page', asyn
 test('visualizer panels reflect execution state during playback', async ({ page }) => {
   await setEditorCode(page, 'setTimeout(() => console.log("t"), 30);\nconsole.log("sync");');
   await page.getByRole('button', { name: 'Run (Ctrl+Enter)' }).click();
+  await expect(page.locator('.as-status')).toContainText(/paused at start/i);
+  // Step forward until the timer is registered, while staying paused.
+  const next = page.getByRole('button', { name: 'Next ▶ (ArrowRight)' });
+  for (let i = 0; i < 5; i++) await next.click();
   // While paused early, the timer is visible in the Browser APIs panel.
   await expect(page.locator('.as-timer')).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('.as-timer')).toContainText('setTimeout');

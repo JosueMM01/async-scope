@@ -29,12 +29,18 @@ export function compile(source: string, language: SourceLanguage = 'javascript')
       plugins: language === 'typescript' ? ['typescript'] : [],
     });
   } catch (error) {
-    const err = error as { message?: string; loc?: { line?: number } };
+    const err = error as { message?: string; reasonCode?: string; loc?: { line?: number } };
+    const moduleSyntax = err.reasonCode === 'ImportOutsideModule';
+    const message = moduleSyntax
+      ? 'Imports and exports are not supported in the AsyncScope sandbox.'
+      : err.reasonCode === 'AwaitNotInAsyncContext'
+        ? 'await must be inside an async function. Use async function or (async () => { ... })().'
+        : cleanSyntaxMessage(err.message ?? 'Unexpected syntax error');
     return {
       ok: false,
       error: {
-        phase: 'syntax',
-        message: cleanSyntaxMessage(err.message ?? 'Unexpected syntax error'),
+        phase: moduleSyntax ? 'unsupported' : 'syntax',
+        message,
         line: err.loc?.line ?? null,
       },
     };

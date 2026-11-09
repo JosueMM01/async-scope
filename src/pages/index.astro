@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import HelpModal from '../components/HelpModal.astro';
 import ThemeToggle from '../components/ThemeToggle.astro';
 import { VisualizerApp } from '../react/VisualizerApp';
 ---
@@ -25,37 +26,7 @@ import { VisualizerApp } from '../react/VisualizerApp';
         </p>
       </div>
       <nav class="ml-auto flex items-center gap-2" aria-label="Page">
-        <details class="as-help-menu relative">
-          <summary
-            class="as-btn cursor-pointer list-none rounded-md border px-2.5 py-1.5 text-[12px] font-semibold"
-          >
-            Help
-          </summary>
-          <div
-            class="as-help-popover absolute top-full right-0 z-40 mt-2 w-[min(360px,calc(100vw-1rem))] rounded-lg border p-4 shadow-xl"
-          >
-            <h2 class="text-sm font-bold">How AsyncScope works</h2>
-            <ol class="mt-2 space-y-2 text-[12px] leading-relaxed text-[var(--as-muted)]">
-              <li>
-                <strong class="text-[var(--as-green)]">1.</strong> Write supported JavaScript or TypeScript.
-              </li>
-              <li>
-                <strong class="text-[var(--as-cyan)]">2.</strong> Run it in an isolated worker with a
-                deterministic event loop.
-              </li>
-              <li>
-                <strong class="text-[var(--as-yellow)]">3.</strong> Step through stack, APIs, queues and
-                Timeline together.
-              </li>
-            </ol>
-            <p
-              class="mt-3 border-t pt-3 text-[11px] text-[var(--as-muted)]"
-              style="border-color: var(--as-border);"
-            >
-              TypeScript types are erased before execution. Everything stays in this browser.
-            </p>
-          </div>
-        </details>
+        <HelpModal />
         <ThemeToggle />
       </nav>
     </header>

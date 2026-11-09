@@ -30,19 +30,25 @@ describe('playback reducer', () => {
     expect(playback.current.stack).toEqual([]);
   });
 
-  it('records, completes and auto-plays from the first step', () => {
+  it('records, completes and pauses at the first step', () => {
     const playback = dispatchAll([{ type: 'run-start' }, { type: 'run-complete', events }]);
-    expect(playback.status).toBe('playing');
+    expect(playback.status).toBe('ready');
     expect(playback.cursor).toBe(0);
     expect(playback.lastStep).toBe(events.length);
-    expect(playback.canPause).toBe(true);
+    expect(playback.canPause).toBe(false);
+    expect(playback.canPlay).toBe(true);
   });
 
   it('pauses and resumes', () => {
-    const playback = dispatchAll([{ type: 'run-complete', events }, { type: 'pause' }]);
+    const playback = dispatchAll([
+      { type: 'run-complete', events },
+      { type: 'play' },
+      { type: 'pause' },
+    ]);
     expect(playback.status).toBe('paused');
     const resumed = dispatchAll([
       { type: 'run-complete', events },
+      { type: 'play' },
       { type: 'pause' },
       { type: 'play' },
     ]);
@@ -53,6 +59,7 @@ describe('playback reducer', () => {
     const last = events.length;
     const playback = dispatchAll([
       { type: 'run-complete', events },
+      { type: 'play' },
       ...Array.from({ length: last }, () => ({ type: 'tick' }) as PlaybackAction),
     ]);
     expect(playback.cursor).toBe(last);

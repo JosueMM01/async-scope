@@ -1,4 +1,14 @@
 allowBuilds:
   esbuild: true
 overrides:
-  'fast-uri@>=3.0.0 <3.1.6': 3.1.6
+  # Patched floors for transitive security advisories; preserve compatible majors.
+  'fast-uri@>=3.0.0 <3.1.8': 3.1.8
+  'devalue@>=5.0.0 <5.9.3': 5.9.3
+  'undici@>=8.0.0 <8.12.2': 8.12.2
+  'vite@>=8.2.0 <8.2.4': 8.2.4
+  'zod@>=4.5.0 <4.6.6': 4.6.6
+  'brace-expansion@>=5.0.0 <5.0.12': 5.0.12
+  'http-cache-semantics@>=4.0.0 <4.3.0': 4.3.0
+  'smol-toml@>=1.0.0 <1.9.0': 1.9.0
+  'source-map-js@>=1.0.0 <1.2.2': 1.2.2
+  'sharp@>=0.35.0 <0.35.5': 0.35.5
